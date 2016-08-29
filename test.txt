@@ -35,6 +35,7 @@ ex chmod ug=r /etc/sudoers
 copy bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
+run bootstrap/install_package.sh iptables-persistent
 ex apt-get remove ufw -y -q
 copy bootstrap/files/fw /root/fw
 copy bootstrap/files/install_fw.sh /root/install_fw.sh
