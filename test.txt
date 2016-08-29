@@ -6,7 +6,7 @@ run bootstrap/timezone.sh {timezone}
 
 run bootstrap/hostname.sh {host}
 
-run bootstrap/updates.sh
+run scripts/updates.sh
 
 run scripts/package.sh install wget
 run scripts/package.sh install lynx
