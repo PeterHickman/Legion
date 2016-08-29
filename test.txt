@@ -40,6 +40,7 @@ copy bootstrap/files/fw /root/fw
 copy bootstrap/files/install_fw.sh /root/install_fw.sh
 ex chmod u+x /root/install_fw.sh
 ex ./install_fw.sh
+ex fw start
 ex rm ./install_fw.sh
 ex rm ./fw
 
