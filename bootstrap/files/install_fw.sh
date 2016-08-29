@@ -46,7 +46,7 @@ needed()
   echo "Things that need to be set up"
 
   if [ ! -d "$TABLES_ROOT" ]; then
-    echo "- Creating $TABLES_ROOT (have you installed iptables-persistent yet?)"
+    echo "- Creating $TABLES_ROOT"
     mkdir $TABLES_ROOT
   else
     echo "- $TABLES_ROOT exists"
