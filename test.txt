@@ -1,8 +1,4 @@
-# This file bootstraps a box on the assumption that:
-# 1) ssh is installed and running
-# 2) root can log in via ssh with a password
-# 3) ruby is installed
-# 4) apt-get is the package manager
+# This file bootstraps a box
 
 run bootstrap/sshlogin_group.sh
 
