@@ -80,5 +80,7 @@ check
 needed
 
 install -g root -o root -m a=r,u+x fw /usr/local/sbin/fw
+install -g root -o root -m a=r,u+x iptablesload /etc/network/if-pre-up.d/iptablesload
+install -g root -o root -m a=r,u+x iptablessave /etc/network/if-post-down.d/iptablessave
 
 echo "Done"
