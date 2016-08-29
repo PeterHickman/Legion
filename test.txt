@@ -8,17 +8,16 @@ run bootstrap/hostname.sh {host}
 
 run bootstrap/updates.sh
 
-run bootstrap/install_package.sh wget
-run bootstrap/install_package.sh lynx
-run bootstrap/install_package.sh emacs
-run bootstrap/install_package.sh vim
-run bootstrap/install_package.sh htop
-run bootstrap/install_package.sh curl
-run bootstrap/install_package.sh mutt
-run bootstrap/install_package.sh traceroute
-run bootstrap/install_package.sh lsof
-run bootstrap/install_package.sh pstree
-run bootstrap/install_package.sh nscd
+run scripts/package.sh install wget
+run scripts/package.sh install lynx
+run scripts/package.sh install vim
+run scripts/package.sh install htop
+run scripts/package.sh install curl
+run scripts/package.sh install mutt
+run scripts/package.sh install traceroute
+run scripts/package.sh install lsof
+run scripts/package.sh install pstree
+run scripts/package.sh install nscd
 
 run bootstrap/etc_hosts.rb
 
@@ -31,14 +30,17 @@ ex chmod ug=r /etc/sudoers
 copy bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
-run bootstrap/install_package.sh iptables-persistent
-ex apt-get remove ufw -y -q
+run scripts/package.sh remove ufw
 copy bootstrap/files/fw /root/fw
 copy bootstrap/files/install_fw.sh /root/install_fw.sh
+copy bootstrap/files/iptablesload /root/iptablesload
+copy bootstrap/files/iptablessave /root/iptablessave
 ex chmod u+x /root/install_fw.sh
 ex ./install_fw.sh
 ex fw start
-ex rm ./install_fw.sh
-ex rm ./fw
+ex rm /root/fw
+ex rm /root/install_fw.sh
+ex rm /root/iptablesload
+ex rm /root/iptablessave
 
 ex reboot
