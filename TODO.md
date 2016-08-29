@@ -1,8 +1,11 @@
 # Bootstrap
 
-- Some of the variable names are less than useful
-- Logging to also go to a file
+- Make the install package more general purpose
 
 # Legion
 
-- `--script` parameter to point to where the scripts should be loaded from
+- Some of the variable names are less than useful
+- Logging should also go to a file
+- Perhaps Python would be a better language, more likely to be installed
+- A README.md file would be useful
+- Documentation, Documentation, Documentation
