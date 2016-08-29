@@ -1,0 +1,277 @@
+#!/bin/bash
+
+#set -euf -o pipefail
+
+TABLES_ROOT='/etc/iptables'
+
+BLACKLIST_FILE=$TABLES_ROOT/blacklist.txt
+
+SERVICES_FILE=$TABLES_ROOT/services.txt
+
+SAVED_RULES=$TABLES_ROOT/rules.v4
+
+SELF=`basename $0`
+
+##
+# These need to be true and there is no corrective action that we
+# can take if they are not
+##
+check()
+{
+  if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root" 1>&2
+    exit 1
+  fi
+
+  FOUND=`which iptables`
+  if [ -z "$FOUND" ]; then
+    echo "iptables does not appear to be installed" 1>&2
+    exit 1
+  fi
+
+  FOUND=`uname -s`
+  if [ "$FOUND" != "Linux" ]; then
+    echo "This software assumes we are running Linux" 1>&2
+    exit 1
+  fi
+}
+
+##
+# Things that need to exist but we can fix them if they do not
+##
+needed()
+{
+  if [ ! -d "$TABLES_ROOT" ]; then
+    echo "The directory $TABLES_ROOT is missing"
+    mkdir $TABLES_ROOT
+  fi
+
+  # Force the permissions
+  chmod a=rx,u+w $TABLES_ROOT
+
+  if [ ! -r "$BLACKLIST_FILE" ]; then
+    echo "The file $BLACKLIST_FILE is missing"
+    touch $BLACKLIST_FILE
+  fi
+
+  # Force the permissions
+  chmod a=r,u+w $BLACKLIST_FILE
+
+  if [ ! -r "$SERVICES_FILE" ]; then
+    echo "The file $SERVICES_FILE is missing"
+    echo 22 > $SERVICES_FILE
+  fi
+
+  # Force the permissions
+  chmod a=r,u+w $SERVICES_FILE
+}
+
+list()
+{
+  iptables -L -n -v
+}
+
+usage()
+{
+  echo $SELF: available commands
+  echo
+  echo $SELF start - start the firewall
+  echo $SELF list - list the current firewall rules
+  echo $SELF status - a summary of the current firewall
+  echo $SELF blacklist add \<address\> - add \<address\> to the blacklist
+  echo $SELF blacklist remove \<address\> - remove \<address\> from the blacklist
+  echo $SELF services add \<service\> - open access to \<service\>
+  echo $SELF services remove \<service\> - remove access to \<service\>
+}
+
+blacklist()
+{
+  COMMAND=$1
+  shift
+
+  case $COMMAND in
+    add)    blacklist_add    $* ;;
+    remove) blacklist_remove $* ;;
+    *)
+      echo "Unknown subcommand [$COMMAND] for blacklist"
+      usage
+      ;;
+  esac
+}
+
+blacklist_add()
+{
+  ADDRESS=$1
+
+  FOUND=`iptables -L BLACKLIST -n | awk '{print \$4}' | grep -F $ADDRESS`
+
+  if [ -z "$FOUND" ]
+  then
+    echo "Address $ADDRESS will be banned"
+    echo $ADDRESS >> $BLACKLIST_FILE
+    iptables -I BLACKLIST -s $ADDRESS -j DROP
+    iptables-save > $SAVED_RULES
+  else
+    echo "Address $ADDRESS is already banned"
+  fi
+}
+
+blacklist_remove()
+{
+  ADDRESS=$1
+
+  FOUND=`iptables -L BLACKLIST -n --line-number | grep " $ADDRESS " | awk '{print $1}'`
+
+  if [ -z "$FOUND" ]
+  then
+    echo "Address $ADDRESS is not currently banned"
+  else
+    echo "Address $ADDRESS is unbanned"
+    iptables -D BLACKLIST $FOUND
+    iptables-save > $SAVED_RULES
+    grep -v "^$ADDRESS$" $BLACKLIST_FILE > /tmp/fw.$$
+    mv /tmp/fw.$$ $BLACKLIST_FILE
+  fi
+}
+
+services()
+{
+  COMMAND=$1
+  shift
+
+  case $COMMAND in
+    add)    services_add    $* ;;
+    remove) services_remove $* ;;
+    *)
+      echo "Unknown subcommand [$COMMAND] for services"
+      usage
+      ;;
+  esac
+}
+
+services_add()
+{
+  SERVICE=$1
+
+  FOUND=`iptables -L SERVICES -n --line-numbers | grep " dpt:$SERVICE " | awk '{print $1}'`
+
+  if [ -z "$FOUND" ]; then
+    echo "Service $SERVICE will be enabled"
+    echo $SERVICE >> $SERVICES_FILE
+    iptables -I SERVICES -p tcp --dport $SERVICE -m state --state NEW -s 0.0.0.0/0 -j ACCEPT 
+    iptables-save > $SAVED_RULES
+  else
+    echo "Service $SERVICE is already enabled"
+  fi
+}
+
+services_remove()
+{
+  SERVICE=$1
+
+  FOUND=`iptables -L SERVICES -n --line-numbers | grep " dpt:$SERVICE " | awk '{print $1}'`
+
+  if [ -z "$FOUND" ]; then
+    echo "Service $SERVICE is not currently enabled"
+  else
+    echo Service $SERVICE will be disabled
+    iptables -D SERVICES $FOUND
+    iptables-save > $SAVED_RULES
+    grep -v "^$SERVICE$" $SERVICES_FILE > /tmp/fw.$$
+    mv /tmp/fw.$$ $SERVICES_FILE
+  fi
+}
+
+start()
+{
+  # Flush all current rules from iptables
+
+  iptables --flush
+  iptables --delete-chain
+  iptables -t nat --flush 
+  iptables -t nat --delete-chain 
+  iptables -t mangle --flush 
+  iptables -t mangle --delete-chain 
+
+  # Set default policies for INPUT, FORWARD and OUTPUT chains
+
+  iptables -P INPUT DROP 
+  iptables -P FORWARD DROP 
+  iptables -P OUTPUT ACCEPT
+
+  # Set access for localhost
+
+  iptables -A INPUT -i lo -j ACCEPT 
+  iptables -A OUTPUT -o lo -j ACCEPT
+
+  # Accept packets belonging to established and related connections
+
+  iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+  # security checks: force SYN checks, drop all fragments, drop XMAS packets, drop null packets 
+  # see: http://security.blogoverflow.com/2011/08/base-rulesets-in-iptables/ 
+  iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP 
+  iptables -A INPUT -f -j DROP 
+  iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP 
+  iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+
+  # allow icmp 
+  iptables -A INPUT -p icmp -m icmp --icmp-type echo-request -m limit --limit 1/second -j ACCEPT 
+  iptables -A INPUT -p icmp -m icmp --icmp-type fragmentation-needed -m limit --limit 1/second -j ACCEPT 
+  iptables -A INPUT -p icmp -m icmp --icmp-type source-quench -m limit --limit 1/second -j ACCEPT 
+
+  # Load the banned addresses
+
+  iptables -N BLACKLIST
+  iptables -A INPUT -j BLACKLIST
+  iptables -A BLACKLIST -j RETURN
+
+  for ADDRESS in `cat $BLACKLIST_FILE`
+  do
+    iptables -I BLACKLIST -s $ADDRESS -j DROP
+  done
+
+  # Permitted ports
+
+  iptables -N SERVICES
+  iptables -A INPUT -j SERVICES
+  iptables -A SERVICES -j RETURN
+
+  for PORT in `cat $SERVICES_FILE`
+  do
+    iptables -I SERVICES -p tcp --dport $PORT -m state --state NEW -s 0.0.0.0/0 -j ACCEPT 
+  done
+
+  # Save settings
+
+  iptables-save > $SAVED_RULES
+
+  echo "Firewall setup and saved"
+}
+
+status()
+{
+  echo "The firewall is allowing access via:"
+  for PORT in `cat $SERVICES_FILE`
+  do
+    echo "  $PORT"
+  done
+
+  COUNT=`cat $BLACKLIST_FILE | wc -l`
+  echo "There are $COUNT banned addresses"
+}
+
+check
+needed
+
+COMMAND=$1
+shift
+
+case $COMMAND in
+  start)     start ;;
+  list)      list ;;
+  status)    status ;;
+  blacklist) blacklist $* ;;
+  services)  services  $* ;;
+  *)         usage ;;
+esac

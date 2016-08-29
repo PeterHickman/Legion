@@ -1,0 +1,183 @@
+#!/usr/bin/env ruby
+# encoding: UTF-8
+
+require 'net/ssh'
+require 'net/sftp'
+require 'colorize'
+
+def opts(list)
+  args = {}
+  rem = []
+
+  while list.any?
+    x = list.shift
+
+    if x.index('--') == 0
+      if x.include?('=')
+        x, y = x.split('=')
+      else
+        y = list.shift
+      end
+      x = x.gsub(/^\-\-/, '').downcase
+      args[x] = y
+    else
+      rem << x
+    end
+  end
+
+  return args, rem
+end
+
+def required_args(hash, *keys)
+  keys.each do |key|
+    fail "Missing key [#{key}]" unless hash.key?(key)
+  end
+end
+
+def show_args(args, rem)
+  log 'Arguments:'.green
+  args.each do |k, v|
+    log "\t#{k} => #{v}".green
+  end
+  log "\tcommands => #{rem.inspect}".green
+end
+
+def log(message, connection = nil)
+  puts "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection || ':'} #{message}"
+end
+
+def make_subs(line)
+  return line if line.index('{').nil?
+
+  t = ''
+
+  until line.index('{').nil?
+    at1 = line.index('{')
+    at2 = line.index('}')
+    t << line[0...at1]
+    t << $subs[line[(at1 + 1)...at2]]
+    line = line[(at2 + 1)..-1]
+  end
+  t << line
+
+  t
+end
+
+def connect_ssh(args)
+  log 'Establishing ssh connection'.green
+
+  begin
+    ssh = Net::SSH.start(args['host'], args['username'], password: args['password'], port: args['port'])
+  rescue StandardError => e
+    log "Failed to open ssh connection: #{e}".red
+    exit
+  end
+
+  ssh
+end
+
+def connect_sftp(args)
+  log 'Establishing sftp connection'.green
+
+  begin
+    sftp = Net::SFTP.start(args['host'], args['username'], password: args['password'], port: args['port'])
+  rescue StandardError => e
+    log "Failed to open sftp connection: #{e}".red
+    exit
+  end
+
+  sftp
+end
+
+def ex(command)
+  log "Command: #{command}".blue, '>'
+
+  $ssh.exec!(command) do |_, stream, data|
+    if stream == :stdout
+      data.split("\n").each do |line|
+        log line, '<'
+      end
+    elsif stream == :stderr
+      data.split("\n").each do |line|
+        log line.red, '<'
+      end
+    end
+  end
+end
+
+def copy_file(v)
+  from, to = v.split(/\s+/)
+
+  log "Copy file [#{from}] to [#{to}]".blue, '>'
+
+  begin
+    $sftp.upload!(from, to)
+  rescue StandardError => e
+    log "Unable to copy file: #{e}".red
+  end
+end
+
+def run_script(v)
+  filename, args = v.split(/\s+/, 2)
+
+  basename = File.basename(filename)
+
+  copy_file("#{filename} ./#{basename}")
+  ex("chmod u+x ./#{basename}")
+  ex("./#{basename} #{args}")
+  ex("rm ./#{basename}")
+end
+
+def process_file(filename, connector = nil)
+  log "Reading commands from #{filename}".green, connector
+
+  line_number = 0
+  File.open(filename, 'r').each do |line|
+    line_number += 1
+
+    next if line =~ /^\s*$/
+    next if line =~ /^\s*\#/
+
+    line = make_subs(line)
+
+    c, v = line.chomp.split(/\s+/, 2)
+
+    case c.downcase
+    when 'ex'
+      ex(v)
+    when '@'
+      process_file(v, '@')
+      log "Continuing with #{filename}".green
+    when 'copy'
+      copy_file(v)
+    when 'run'
+      run_script(v)
+    when 'set'
+      k, v = v.split(/\s+/, 2)
+      k = k.downcase
+      $subs[k] = v
+      log "Set [#{k}] to [#{v}]".blue, '>'
+    else
+      log "Unknown command [#{c}] at line #{line_number} of #{filename}".red
+    end
+  end
+
+  log "Completed #{filename}".green
+end
+
+a = %w(--host 192.168.0.36 --port=22 --password fredfred --username root server.txt test.txt)
+
+args, rem = opts(a)
+required_args(args, 'host', 'password', 'port', 'username')
+show_args(args, rem)
+
+$ssh  = connect_ssh(args)
+$sftp = connect_sftp(args)
+
+$subs = {}
+
+rem.each do |command_file|
+  process_file(command_file)
+end
+
+log 'Done'.green

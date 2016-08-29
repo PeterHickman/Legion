@@ -1,0 +1,46 @@
+# This file bootstraps a box on the assumption that:
+# 1) ssh is installed and running
+# 2) root can log in via ssh with a password
+# 3) ruby is installed
+# 4) apt-get is the package manager
+
+run bootstrap/sshlogin_group.sh
+
+run bootstrap/timezone.sh {timezone}
+
+run bootstrap/hostname.sh {host}
+
+run bootstrap/updates.sh
+
+run bootstrap/install_package.sh wget
+run bootstrap/install_package.sh lynx
+run bootstrap/install_package.sh emacs
+run bootstrap/install_package.sh vim
+run bootstrap/install_package.sh htop
+run bootstrap/install_package.sh curl
+run bootstrap/install_package.sh mutt
+run bootstrap/install_package.sh traceroute
+run bootstrap/install_package.sh lsof
+run bootstrap/install_package.sh pstree
+run bootstrap/install_package.sh nscd
+
+run bootstrap/etc_hosts.rb
+
+copy bootstrap/files/authorized_keys2 /root/authorized_keys2
+run bootstrap/admin_user.sh
+
+copy bootstrap/files/sudoers /etc/sudoers
+ex chmod ug=r /etc/sudoers
+
+copy bootstrap/files/sshd_config /etc/ssh/sshd_config
+ex chmod a=r,u+w /etc/ssh/sshd_config
+
+ex apt-get remove ufw -y -q
+copy bootstrap/files/fw /root/fw
+copy bootstrap/files/install_fw.sh /root/install_fw.sh
+ex chmod u+x /root/install_fw.sh
+ex ./install_fw.sh
+ex rm ./install_fw.sh
+ex rm ./fw
+
+ex reboot
