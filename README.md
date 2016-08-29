@@ -1,7 +1,7 @@
 # Legion - configuration and deployment software
 
 Legion allows the automated deployment and configuration of machines in the vein of
-Chef or Ansible but it allows me to use my existing knowledge of configuring machines
+Chef or Ansible but it allows me to use my existing knowledge for configuring machines
 rather than having to learn a whole new framework
 
 It was motivated by my hosting provider going out of business and me having to deploy
@@ -9,7 +9,7 @@ to a new server. Thats when I realised that I would have to do it all by hand
 
 Why is it called "Legion"? Well I have created several such system before of much
 complexity that ultimately actually made it harder to deploy despite their sweet 
-architecture. I've written so many of them they are legion - geddit!
+architecture. I've written so many of them they are legion :)
 
 This time I have gone for the simplest solution
 
