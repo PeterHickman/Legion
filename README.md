@@ -8,8 +8,8 @@ It was motivated by my hosting provider going out of business and me having to d
 to a new server. Thats when I realised that I would have to do it all by hand
 
 Why is it called "Legion"? Well I have created several such system before of much
-complexity that ultimately actually made it harder to deploy despite their sweet 
-architecture. I've written so many of them they are legion :)
+complexity that ultimately made it harder to deploy despite their sweet architecture. 
+I've written so many of them they are legion :)
 
 This time I have gone for the simplest solution
 
