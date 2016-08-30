@@ -8,3 +8,4 @@
 - Logging should also go to a file
 - Perhaps Python would be a better language, more likely to be installed
 - Documentation, Documentation, Documentation
+- Vi/Textmate syntax highlighting
