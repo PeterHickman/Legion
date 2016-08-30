@@ -1,10 +1,10 @@
 # This file bootstraps a box
 
-run bootstrap/sshlogin_group.sh
+run scripts/bootstrap/sshlogin_group.sh
 
-run bootstrap/timezone.sh {timezone}
+run scripts/bootstrap/timezone.sh {timezone}
 
-run bootstrap/hostname.sh {host}
+run scripts/bootstrap/hostname.sh {host}
 
 run scripts/updates.sh
 
@@ -19,22 +19,22 @@ run scripts/package.sh install lsof
 run scripts/package.sh install pstree
 run scripts/package.sh install nscd
 
-run bootstrap/etc_hosts.rb
+run scripts/bootstrap/etc_hosts.rb
 
-copy bootstrap/files/authorized_keys2 /root/authorized_keys2
-run bootstrap/admin_user.sh
+copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
+run scripts/bootstrap/admin_user.sh
 
-copy bootstrap/files/sudoers /etc/sudoers
+copy scripts/bootstrap/files/sudoers /etc/sudoers
 ex chmod ug=r /etc/sudoers
 
-copy bootstrap/files/sshd_config /etc/ssh/sshd_config
+copy scripts/bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
 run scripts/package.sh remove ufw
-copy bootstrap/files/fw /root/fw
-copy bootstrap/files/install_fw.sh /root/install_fw.sh
-copy bootstrap/files/iptablesload /root/iptablesload
-copy bootstrap/files/iptablessave /root/iptablessave
+copy scripts/bootstrap/files/fw /root/fw
+copy scripts/bootstrap/files/install_fw.sh /root/install_fw.sh
+copy scripts/bootstrap/files/iptablesload /root/iptablesload
+copy scripts/bootstrap/files/iptablessave /root/iptablessave
 ex chmod u+x /root/install_fw.sh
 ex ./install_fw.sh
 ex fw start
