@@ -38,17 +38,6 @@ ex chmod ug=r /etc/sudoers
 copy scripts/bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
-run scripts/package.sh remove ufw
-copy scripts/bootstrap/files/fw /root/fw
-copy scripts/bootstrap/files/install_fw.sh /root/install_fw.sh
-copy scripts/bootstrap/files/iptablesload /root/iptablesload
-copy scripts/bootstrap/files/iptablessave /root/iptablessave
-ex chmod u+x /root/install_fw.sh
-ex ./install_fw.sh
-ex fw start
-ex rm /root/fw
-ex rm /root/install_fw.sh
-ex rm /root/iptablesload
-ex rm /root/iptablessave
+@ firewall.txt
 
 ex reboot
