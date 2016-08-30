@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ADMIN=ai
+ADMIN=$1
 
 FOUND=`grep ^$ADMIN: /etc/passwd`
 

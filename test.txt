@@ -22,7 +22,7 @@ run scripts/package.sh install nscd
 run scripts/bootstrap/etc_hosts.rb
 
 copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
-run scripts/bootstrap/admin_user.sh
+run scripts/bootstrap/admin_user.sh {admin}
 
 copy scripts/bootstrap/files/sudoers /etc/sudoers
 ex chmod ug=r /etc/sudoers
