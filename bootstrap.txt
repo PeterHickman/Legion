@@ -8,7 +8,10 @@
 
 run scripts/updates.sh
 
+# We install ruby because some of the scripts that Legion uses are written in ruby
 run scripts/package.sh install ruby
+
+# All of these are just tools that I like to work with
 run scripts/package.sh install runit
 run scripts/package.sh install wget
 run scripts/package.sh install lynx
@@ -20,14 +23,11 @@ run scripts/package.sh install lsof
 run scripts/package.sh install pstree
 run scripts/package.sh install nscd
 
-run scripts/bootstrap/sshlogin_group.sh
-
 run scripts/bootstrap/timezone.sh {timezone}
-
 run scripts/bootstrap/hostname.sh {host}
-
 run scripts/bootstrap/etc_hosts.rb
 
+run scripts/bootstrap/sshlogin_group.sh
 copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
 run scripts/bootstrap/admin_user.sh {admin}
 
