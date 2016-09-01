@@ -7,7 +7,7 @@ require 'colorize'
 
 def opts(list)
   args = {}
-  rem = []
+  script_files = []
 
   while list.any?
     x = list.shift
@@ -21,11 +21,11 @@ def opts(list)
       x = x.gsub(/^\-\-/, '').downcase
       args[x] = y
     else
-      rem << x
+      script_files << x
     end
   end
 
-  return args, rem
+  return args, script_files
 end
 
 def required_args(hash, *keys)
@@ -165,19 +165,19 @@ def process_file(filename, connector = nil)
   log "Completed #{filename}".green
 end
 
-a = %w(--host localhost --port=2222 --password fredfred --username root server.txt bootstrap.txt)
-
-args, rem = opts(a)
+args, script_files = opts(ARGV)
 required_args(args, 'host', 'password', 'port', 'username')
-show_args(args, rem)
+fail "No script files have been supplied" if script_files.empty?
+
+show_args(args, script_files)
 
 $ssh  = connect_ssh(args)
 $sftp = connect_sftp(args)
 
 $subs = {}
 
-rem.each do |command_file|
-  process_file(command_file)
+script_files.each do |script_file|
+  process_file(script_file)
 end
 
 log 'Done'.green
