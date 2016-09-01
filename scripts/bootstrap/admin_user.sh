@@ -25,9 +25,9 @@ else
   su -l $ADMIN -c "ssh-keygen -q -t rsa -N '' -f $KEY_FILE"
 fi
 
-AUTH_FILE="/home/$ADMIN/.ssh/authorized_keys2"
+AUTH_FILE="/home/$ADMIN/.ssh/authorized_keys"
 
-cat authorized_keys2 > $AUTH_FILE
+cat authorized_keys > $AUTH_FILE
 chown $ADMIN:$ADMIN $AUTH_FILE
 chmod a=r,u+w $AUTH_FILE
-rm authorized_keys2
+rm authorized_keys

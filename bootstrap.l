@@ -20,7 +20,6 @@ run scripts/package.sh install htop
 run scripts/package.sh install curl
 run scripts/package.sh install traceroute
 run scripts/package.sh install lsof
-run scripts/package.sh install pstree
 run scripts/package.sh install nscd
 
 run scripts/bootstrap/timezone.sh {timezone}
@@ -28,7 +27,7 @@ run scripts/bootstrap/hostname.sh {host}
 run scripts/bootstrap/etc_hosts.rb
 
 run scripts/bootstrap/sshlogin_group.sh
-copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
+copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
 run scripts/bootstrap/admin_user.sh {admin}
 
 copy scripts/bootstrap/files/sudoers /etc/sudoers

@@ -16,6 +16,7 @@ copy scripts/bootstrap/files/iptablessave /root/iptablessave
 ex chmod u+x /root/install_fw.sh
 ex ./install_fw.sh
 ex fw start
+ex fw list
 
 ex rm /root/fw
 ex rm /root/install_fw.sh

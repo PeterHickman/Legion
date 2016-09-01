@@ -1,9 +1,6 @@
 #!/bin/sh
 
-##
-# Fix things incase the install broke
-##
-dpkg --configure -a
+export DEBIAN_FRONTEND=noninteractive
 
-apt-get update
-apt-get dist-upgrade -y
+apt-get update -q
+apt-get dist-upgrade -q -y

@@ -106,11 +106,11 @@ More scripts are uploaded and run to create the `sshlogin` group (members of thi
 Of note here is the `{timezone}` argument to the timezone configuration. In the `server.l` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.l` script it will replace `{timezone}` with `Europe/London` before running the script to the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
 
 ```
-copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
+copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
 run scripts/bootstrap/admin_user.sh {admin}
 ```
 
-Legion copies the `authorized_keys2` to the target machine and then runs the script to create the admin user
+Legion copies the `authorized_keys` to the target machine and then runs the script to create the admin user
 
 ```
 copy scripts/bootstrap/files/sudoers /etc/sudoers
