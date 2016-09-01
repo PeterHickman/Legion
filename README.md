@@ -28,7 +28,7 @@ file needs to have the following directive
 
 This is a vulnerability but after the configuration it will be closed
 
-Also create a password for root if you don't have one
+Create a password for root if you don't have one
 
 ### apt-get is the package manager
 
@@ -56,7 +56,7 @@ After the script has been run the target machine will have:
 3. The hostname will be set
 4. The timezone will be set
 
-Ok. Given that the `bootstrap.txt` script is a general purpose script we need to put the target specific configuration in it's own file -- called `server.txt` in this example (which is for my test Raspberry Pi)
+Ok. Given that the `bootstrap.txt` script is a general purpose script we need to put the target specific configuration in it's own file -- called `server.txt` in this example (which is for my Raspberry Pi)
 
 ```
 # Describes the server
@@ -103,7 +103,7 @@ run scripts/bootstrap/etc_hosts.rb
 
 More scripts are uploaded and run to create the `sshlogin` group (members of this group are the only once who can log in via ssh), set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
 
-Of note here is the `{timezone}` argument to the timezone configuration. In the `server.txt` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.txt` script it will replace `{timezone}` with `Europe/London` before running the scipt to the target machine. This allows us to have a machine specific machine configuration without having to duplicate the whole of the bootstrap script with just a few minor changes.
+Of note here is the `{timezone}` argument to the timezone configuration. In the `server.txt` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.txt` script it will replace `{timezone}` with `Europe/London` before running the script to the target machine. This allows us to have a machine specific machine configuration without having to duplicate the whole of the bootstrap script with just a few minor changes.
 
 ```
 copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
