@@ -21,7 +21,6 @@ run scripts/package.sh install lynx
 run scripts/package.sh install vim
 run scripts/package.sh install htop
 run scripts/package.sh install curl
-run scripts/package.sh install mutt
 run scripts/package.sh install traceroute
 run scripts/package.sh install lsof
 run scripts/package.sh install pstree
