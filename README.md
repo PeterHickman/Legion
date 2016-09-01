@@ -56,7 +56,7 @@ After the script has been run the target machine will have:
 3. The hostname will be set
 4. The timezone will be set
 
-Ok. Given that the `bootstrap.txt` script is a general purpose script we need to put the target specific configuration information in it's own file -- called `server.txt` in this example (which is for my test Raspberry Pi)
+Ok. Given that the `bootstrap.txt` script is a general purpose script we need to put the target specific configuration in it's own file -- called `server.txt` in this example (which is for my test Raspberry Pi)
 
 ```
 # Describes the server
@@ -87,9 +87,9 @@ run scripts/package.sh install pstree
 run scripts/package.sh install nscd
 ```
 
-The first step is to make sure that the existing packages are up to date and then install the various packages that we will need. Of all the packages `ruby` is the only essential one as it is required later in the bootstrap process.
+The first step is to make sure that the existing packages are up to date and then install the packages that we will need. Of all the packages `ruby` is the only essential one as it is required later in the bootstrap process.
 
-Commands like `run scripts/updates.sh` tell Legion to upload the file `updates.sh` from the `scripts` directory that came with Legion to the target machine and run it there. `updates.sh` itself is just a bash script.
+Commands like `run scripts/updates.sh` tell Legion to upload the file `updates.sh` from the `scripts` directory that came with Legion to the target machine and run it there. `updates.sh` is an ordinary bash script.
 
 ```
 run scripts/bootstrap/sshlogin_group.sh
@@ -101,7 +101,7 @@ run scripts/bootstrap/hostname.sh {host}
 run scripts/bootstrap/etc_hosts.rb
 ```
 
-More scipts are uploaded and run to create the `sshlogin` group (members of this group are the only once who can log in via ssh), set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
+More scripts are uploaded and run to create the `sshlogin` group (members of this group are the only once who can log in via ssh), set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
 
 Of note here is the `{timezone}` argument to the timezone configuration. In the `server.txt` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.txt` script it will replace `{timezone}` with `Europe/London` before running the scipt to the target machine. This allows us to have a machine specific machine configuration without having to duplicate the whole of the bootstrap script with just a few minor changes.
 
@@ -110,7 +110,7 @@ copy scripts/bootstrap/files/authorized_keys2 /root/authorized_keys2
 run scripts/bootstrap/admin_user.sh {admin}
 ```
 
-Legion copies the `authorized_keys2` to the target machine and then creates the admin user
+Legion copies the `authorized_keys2` to the target machine and then runs the script to create the admin user
 
 ```
 copy scripts/bootstrap/files/sudoers /etc/sudoers
@@ -126,7 +126,7 @@ ex reboot
 
 Finishing off we copy up our customised sudoers file and make sure the permissions are set correctly. The `ex` command executes the rest of the line directly on the target machine.
 
-After doing the same for the `sshd_config` file we configure the firewall. The firewall configuration in `firewall.txt` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `@` can be used to call other Legion scripts to make things a little modular
+After doing the same for `sshd_config` we configure the firewall. The firewall configuration in `firewall.txt` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `@` can be used to call other Legion scripts to make things a little more modular
 
 ## Testing the scripts
 
