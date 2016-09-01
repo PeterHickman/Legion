@@ -165,7 +165,7 @@ def process_file(filename, connector = nil)
   log "Completed #{filename}".green
 end
 
-a = %w(--host 192.168.0.36 --port=22 --password fredfred --username root server.txt test.txt)
+a = %w(--host localhost --port=2222 --password fredfred --username root server.txt bootstrap.txt)
 
 args, rem = opts(a)
 required_args(args, 'host', 'password', 'port', 'username')
