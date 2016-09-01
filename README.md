@@ -13,6 +13,10 @@ I've written so many of them they are legion :)
 
 This time I have gone for the simplest solution
 
+## TL;DR
+
+Legion is a tool that allows a simple scripting language (with a mini templating system) to run over SSH to a target system. The scripting language can issue commands, copy files from the host to the target and upload and execute stored scripts. I use it to automate the configuration of servers. It probably has other uses and there are certainly a million and one other (better) tools that do the same thing
+
 ## Prerequisites
 
 ### ssh is installed and running on the target machine
