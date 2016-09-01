@@ -8,14 +8,13 @@
 # it to. So in the vein of perpetual wheel reinvention I
 # went ahead and wrote my own
 
-run scripts/bootstrap/sshlogin_group.sh
-
-run scripts/bootstrap/timezone.sh {timezone}
-
-run scripts/bootstrap/hostname.sh {host}
+# This first step means that all the software that we require
+# to complete this script is available and up to date before we
+# get down to the hard work
 
 run scripts/updates.sh
 
+run scripts/package.sh install ruby
 run scripts/package.sh install runit
 run scripts/package.sh install wget
 run scripts/package.sh install lynx
@@ -27,6 +26,12 @@ run scripts/package.sh install traceroute
 run scripts/package.sh install lsof
 run scripts/package.sh install pstree
 run scripts/package.sh install nscd
+
+run scripts/bootstrap/sshlogin_group.sh
+
+run scripts/bootstrap/timezone.sh {timezone}
+
+run scripts/bootstrap/hostname.sh {host}
 
 run scripts/bootstrap/etc_hosts.rb
 
