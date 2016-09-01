@@ -139,3 +139,11 @@ Because a mistake can result in the target machine becoming unusable you will ne
 Basically test everything before deploying, then test it some more
 
 ## Running Legion
+
+From the command line we call it thus
+
+    $ legion --host 1.2.3.4 --port 22 --username root --password secret server.l bootstrap.l
+
+All four parameters must be given even if there are sane defaults (for `port` for example) or they might not be required (`password` is not needed if you are using ssh key exchange to the admin account -- just give it some dummy value)
+
+After the parameters are the script files that will be run in order. There should be at least one
