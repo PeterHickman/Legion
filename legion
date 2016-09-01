@@ -145,7 +145,7 @@ def process_file(filename, connector = nil)
     case c.downcase
     when 'ex'
       ex(v)
-    when '@'
+    when 'call'
       process_file(v, '@')
       log "Continuing with #{filename}".green
     when 'copy'

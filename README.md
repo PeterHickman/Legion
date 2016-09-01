@@ -8,7 +8,7 @@ It was motivated by my hosting provider going out of business and me having to d
 to a new server. Thats when I realised that I would have to do it all by hand :(
 
 Why is it called "Legion"? Well I have created several such system before of much
-complexity that ultimately made it harder to deploy despite their sweet architecture. 
+complexity that ultimately made it harder to deploy despite their sweet architecture.
 I've written so many of them they are legion :)
 
 This time I have gone for the simplest solution
@@ -119,14 +119,14 @@ ex chmod ug=r /etc/sudoers
 copy scripts/bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
-@ firewall.txt
+call firewall.txt
 
 ex reboot
 ```
 
 Finishing off we copy up our customised sudoers file and make sure the permissions are set correctly. The `ex` command executes the rest of the line directly on the target machine.
 
-After doing the same for `sshd_config` we configure the firewall. The firewall configuration in `firewall.txt` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `@` can be used to call other Legion scripts to make things a little more modular
+After doing the same for `sshd_config` we configure the firewall. The firewall configuration in `firewall.txt` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `call` can be used to call other Legion scripts to make things a little more modular
 
 ## Testing the scripts
 
