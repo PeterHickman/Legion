@@ -7,5 +7,5 @@
 - Some of the variable names are less than useful
 - Logging should also go to a file
 - Documentation, Documentation, Documentation
-- Vi/Textmate syntax highlighting
+- Textmate syntax highlighting
 - Check for misnamed variables when interpolating `{fred}`
