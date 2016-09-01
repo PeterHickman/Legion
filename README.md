@@ -30,13 +30,6 @@ This is a vulnerability but after the configuration it will be closed
 
 Also create a password for root if you don't have one
 
-### ruby is installed
-
-In most cases this is true but there are some systems that do not have Ruby installed
-(the Raspberry Pi is an example of such a system). There is no great reliance on Ruby
--- its just something that I use a lot -- so it could be swapped out for Python in the 
-future as it is pretty much guaranteed to be available
-
 ### apt-get is the package manager
 
 This is just a statement of fact rather than a requirement. It wouldn't take much to
@@ -49,11 +42,11 @@ This is a work in progress and things will change
 
 ## Using Legion
 
-Lets use the `bootstrap.txt` script as a worked example. The pupoose of the script is to take a newly provisioned machine and configure it to a known baseline. Before we start to run the script the target machine will be:
+Lets use the `bootstrap.txt` script as a worked example. The purpose of the script is to take a newly provisioned machine and configure it to a known baseline. Before we start to run the script the target machine will be:
 
 0. Running ssh
 1. Allow `root` to log in using a password
-2. `root` will have a password
+2. `root` has a password
 
 After the script has been run the target machine will have:
 
@@ -63,7 +56,7 @@ After the script has been run the target machine will have:
 3. The hostname will be set
 4. The timezone will be set
 
-Ok. Given that the `bootstrap.txt` script is a general purpose script we need to put the target specific configuration information in it's own file -- called `server.txt` in this example
+Ok. Given that the `bootstrap.txt` script is a general purpose script we need to put the target specific configuration information in it's own file -- called `server.txt` in this example (which is for my test Raspberry Pi)
 
 ```
 # Describes the server
@@ -73,7 +66,7 @@ set timezone Europe/London
 set admin fred
 ```
 
-This file just defines three variables that descibe the target configuration information, the hostname, timezone and the name of the admin account. With this the bootstrap script can simply refer to the variable names.
+This file just defines three variables that describe the target configuration information, the hostname, timezone and the name of the admin account. With this the bootstrap script can simply refer to the variable names.
 
 Now lets walk through the bootstrap script itself, less the comments.
 
