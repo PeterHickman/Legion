@@ -1,3 +1,8 @@
+# This file should contain all the public keys from all the users / machines
+# that you wish to connect to the target from. My keys are just an example
+# feel free to allow me unrestricted access to your machines or perhaps
+# replace the contents of this file with something useful
+
 # Peters home desktop
 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEAt1DqGYJwZs5fR3fOZ11CDP8W/x6I49ESjUvJIc/gQjHMFm8osAnoCesha+cf0z6K13+AGFT4K3cNvE1avtTK/CDizil2SmWrjrNQHUMQpj3AnBM2slYS5AtNgWK0jHDmzW/ctUPXjTy+Jy2VNQ852k1znZlX1zjbx/nqMkLte5k= peterhickman@Peter-Hickmans-Computer.local
 # Peters work desktop
