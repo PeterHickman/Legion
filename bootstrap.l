@@ -37,6 +37,6 @@ ex chmod ug=r /etc/sudoers
 copy scripts/bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
-@ firewall.txt
+call firewall.l
 
 ex reboot
