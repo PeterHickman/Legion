@@ -9,3 +9,4 @@
 - Perhaps Python would be a better language, more likely to be installed
 - Documentation, Documentation, Documentation
 - Vi/Textmate syntax highlighting
+- Check for misnamed variables when interpolating `{fred}`
