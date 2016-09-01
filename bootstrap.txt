@@ -16,6 +16,7 @@ run scripts/bootstrap/hostname.sh {host}
 
 run scripts/updates.sh
 
+run scripts/package.sh install runit
 run scripts/package.sh install wget
 run scripts/package.sh install lynx
 run scripts/package.sh install vim
