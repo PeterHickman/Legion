@@ -46,7 +46,7 @@ This is a work in progress and things will change
 
 ## Using Legion
 
-Lets use the `bootstrap.l` script as a worked example. The purpose of the script is to take a newly provisioned machine and configure it to a known baseline. Before we start to run the script the target machine will be:
+Lets use the `bootstrap.legion` script as a worked example. The purpose of the script is to take a newly provisioned machine and configure it to a known baseline. Before we start to run the script the target machine will be:
 
 0. Running ssh
 1. Allow `root` to log in using a password
@@ -60,7 +60,7 @@ After the script has been run the target machine will:
 3. The hostname will be set
 4. The timezone will be set
 
-Ok. Given that the `bootstrap.l` script is a general purpose script we need to put the target specific configuration in it's own file -- called `server.l` in this example (which is for my Raspberry Pi)
+Ok. Given that the `bootstrap.legion` script is a general purpose script we need to put the target specific configuration in it's own file -- called `server.legion` in this example (which is for my Raspberry Pi)
 
 ```
 # Describes the server
@@ -107,7 +107,7 @@ run scripts/bootstrap/etc_hosts.rb
 
 More scripts are uploaded and run to create the `sshlogin` group (members of this group are the only once who can log in via ssh), set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
 
-Of note here is the `{timezone}` argument to the timezone configuration. In the `server.l` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.l` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
+Of note here is the `{timezone}` argument to the timezone configuration. In the `server.legion` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.legion` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
 
 ```
 copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
@@ -123,14 +123,14 @@ ex chmod ug=r /etc/sudoers
 copy scripts/bootstrap/files/sshd_config /etc/ssh/sshd_config
 ex chmod a=r,u+w /etc/ssh/sshd_config
 
-call firewall.l
+call firewall.legion
 
 ex reboot
 ```
 
 Finishing off we copy up our customised sudoers file and make sure the permissions are set correctly. The `ex` command executes the rest of the line directly on the target machine.
 
-After doing the same for `sshd_config` we configure the firewall. The firewall configuration in `firewall.l` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `call` can be used to call other Legion scripts to make things a little more modular
+After doing the same for `sshd_config` we configure the firewall. The firewall configuration in `firewall.legion` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `call` can be used to call other Legion scripts to make things a little more modular
 
 ## Testing the scripts
 
@@ -146,7 +146,7 @@ Basically test everything before deploying, then test it some more
 
 From the command line we call it thus
 
-    $ legion --host 1.2.3.4 --port 22 --username root --password secret server.l bootstrap.l
+    $ legion --host 1.2.3.4 --port 22 --username root --password secret server.legion bootstrap.legion
 
 All four parameters must be given even if there are sane defaults (for `port` for example) or they might not be required (`password` is not needed if you are using ssh key exchange to the admin account -- just give it some dummy value)
 
