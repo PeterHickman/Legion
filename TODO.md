@@ -9,5 +9,4 @@
 - Documentation, Documentation, Documentation
 - Textmate syntax highlighting
 - Check for misnamed variables when interpolating `{fred}`
-- The `.l` extension conflicts with at least 2 versions of Lisp -- what to do
 - `etc_hosts.rb` needs to handle IPv6 as best it can

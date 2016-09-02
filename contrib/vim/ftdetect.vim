@@ -1,1 +1,1 @@
-au BufNewFile,BufRead *.l set filetype=legion
+au BufNewFile,BufRead *.legion set filetype=legion
