@@ -92,15 +92,25 @@ end
 def ex(command)
   log "Command: #{command}".blue, '>'
 
-  $ssh.exec!(command) do |_, stream, data|
-    if stream == :stdout
-      data.split("\n").each do |line|
-        log line, '<'
+  begin
+    $ssh.exec!(command) do |_, stream, data|
+      if stream == :stdout
+        data.split("\n").each do |line|
+          log line, '<'
+        end
+      elsif stream == :stderr
+        data.split("\n").each do |line|
+          log line.red, '<'
+        end
       end
-    elsif stream == :stderr
-      data.split("\n").each do |line|
-        log line.red, '<'
-      end
+    end
+  rescue Exception => e
+    if command == 'reboot'
+      # Yeah, the reboot command will cut the connection
+      # We're expecting that so we'll let it slide
+    else
+      log "Exception: #{e}".red, ':'
+      e.backtrace.each { |line| log line.red, ':' }
     end
   end
 end
