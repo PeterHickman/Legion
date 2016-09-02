@@ -137,7 +137,7 @@ After doing the same for `sshd_config` we configure the firewall. The firewall c
 Because a mistake can result in the target machine becoming unusable you will need to test the scripts before deployment. I personally use these methods:
 
 0. Set up a Raspberry Pi with either Debian or CentOS
-1. User Oracle VirtualBox to run the target OS
+1. Use Oracle VirtualBox to run the target OS
 2. Set up a vm on Rackspace
 
 Basically test everything before deploying, then test it some more
