@@ -151,3 +151,7 @@ From the command line we call it thus
 All four parameters must be given even if there are sane defaults (for `port` for example) or they might not be required (`password` is not needed if you are using ssh key exchange to the admin account -- just give it some dummy value)
 
 After the parameters are the script files that will be run in order. There should be at least one
+
+## Why the long ass file extension?
+
+All the shorter ones were already taken. Anything shorter than the full name would have been needlessly cryptic so I went the whole hog
