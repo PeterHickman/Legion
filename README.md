@@ -52,10 +52,10 @@ Lets use the `bootstrap.l` script as a worked example. The purpose of the script
 1. Allow `root` to log in using a password
 2. `root` has a password
 
-After the script has been run the target machine will have:
+After the script has been run the target machine will:
 
 0. Only allow access via ssh by key exchange
-1. The only, initial, access will be to a named admin account
+1. The initial access will be to a named admin account
 2. The firewall is up and running allowing access only to port 22
 3. The hostname will be set
 4. The timezone will be set
@@ -107,7 +107,7 @@ run scripts/bootstrap/etc_hosts.rb
 
 More scripts are uploaded and run to create the `sshlogin` group (members of this group are the only once who can log in via ssh), set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
 
-Of note here is the `{timezone}` argument to the timezone configuration. In the `server.l` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.l` script it will replace `{timezone}` with `Europe/London` before running the script no the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
+Of note here is the `{timezone}` argument to the timezone configuration. In the `server.l` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.l` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
 
 ```
 copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
