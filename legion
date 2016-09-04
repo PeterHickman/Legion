@@ -41,18 +41,27 @@ def required_args(hash, *keys)
 end
 
 def show_args(args, rem)
-  log 'Arguments:'.green
+  log 'Arguments:'
   args.each do |k, v|
-    log "\t#{k} => #{v}".green
+    log "\t#{k} => #{v}"
   end
-  log "\tcommands => #{rem.inspect}".green
+  log "\tcommands => #{rem.inspect}"
 end
 
-def log(message, connection = nil)
-  text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection || ':'} #{message}"
+def log(message, connection = ':')
+  text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
 
-  $logger.puts text
-  puts text
+  $logger.puts "#{text} #{message}"
+
+  message = if connection == ':'
+              message.green
+            elsif connection == '>'
+              message.blue
+            else
+              message
+            end
+
+  puts "#{text} #{message}"
 end
 
 def make_subs(line)
@@ -73,13 +82,13 @@ def make_subs(line)
 end
 
 def connect_ssh(args)
-  log 'Establishing ssh connection'.green
+  log 'Establishing ssh connection'
   return if $pretend
 
   begin
     ssh = Net::SSH.start(args['host'], args['username'], password: args['password'], port: args['port'])
   rescue StandardError => e
-    log "Failed to open ssh connection: #{e}".red
+    log "Failed to open ssh connection: #{e}"
     exit
   end
 
@@ -87,13 +96,13 @@ def connect_ssh(args)
 end
 
 def connect_sftp(args)
-  log 'Establishing sftp connection'.green
+  log 'Establishing sftp connection'
   return if $pretend
 
   begin
     sftp = Net::SFTP.start(args['host'], args['username'], password: args['password'], port: args['port'])
   rescue StandardError => e
-    log "Failed to open sftp connection: #{e}".red
+    log "Failed to open sftp connection: #{e}"
     exit
   end
 
@@ -101,7 +110,7 @@ def connect_sftp(args)
 end
 
 def ex(command)
-  log "Command: #{command}".blue, '>'
+  log "Command: #{command}", '>'
 
   if $pretend
     log 'The host says something', '<'
@@ -114,7 +123,7 @@ def ex(command)
           end
         elsif stream == :stderr
           data.split("\n").each do |line|
-            log line.red, '<'
+            log line, '<'
           end
         end
       end
@@ -123,8 +132,8 @@ def ex(command)
         # Yeah, the reboot command will cut the connection
         # We're expecting that so we'll let it slide
       else
-        log "Exception: #{e}".red, ':'
-        e.backtrace.each { |line| log line.red, ':' }
+        log "Exception: #{e}", ':'
+        e.backtrace.each { |line| log line, ':' }
       end
     end
   end
@@ -133,14 +142,14 @@ end
 def copy_file(v)
   from, to = v.split(/\s+/)
 
-  log "Copy file [#{from}] to [#{to}]".blue, '>'
+  log "Copy file [#{from}] to [#{to}]", '>'
 
   return if $pretend
 
   begin
     $sftp.upload!(from, to)
   rescue StandardError => e
-    log "Unable to copy file: #{e}".red
+    log "Unable to copy file: #{e}"
   end
 end
 
@@ -166,8 +175,8 @@ def run_as_sudo(v)
   ex("rm ./#{basename}")
 end
 
-def process_file(filename, connector = nil)
-  log "Reading commands from #{filename}".green, connector
+def process_file(filename, connector = ':')
+  log "Reading commands from #{filename}", connector
 
   line_number = 0
   File.open(filename, 'r').each do |line|
@@ -185,7 +194,7 @@ def process_file(filename, connector = nil)
       ex(v)
     when 'call'
       process_file(v, '@')
-      log "Continuing with #{filename}".green
+      log "Continuing with #{filename}"
     when 'copy'
       copy_file(v)
     when 'run'
@@ -196,13 +205,13 @@ def process_file(filename, connector = nil)
       k, v = v.split(/\s+/, 2)
       k = k.downcase
       $subs[k] = v
-      log "Set [#{k}] to [#{v}]".blue, '>'
+      log "Set [#{k}] to [#{v}]", '>'
     else
-      log "Unknown command [#{c}] at line #{line_number} of #{filename}".red
+      log "Unknown command [#{c}] at line #{line_number} of #{filename}"
     end
   end
 
-  log "Completed #{filename}".green
+  log "Completed #{filename}"
 end
 
 $pretend = false
@@ -223,4 +232,4 @@ script_files.each do |script_file|
   process_file(script_file)
 end
 
-log 'Done'.green
+log 'Done'
