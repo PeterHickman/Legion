@@ -1,6 +1,7 @@
 # Install nginx and make sure that the firewall allows access
 
 runsudo scripts/package.sh install nginx
-copy scripts/files/nginx.conf ./nginx.conf 
+copy scripts/files/nginx.conf ./nginx.conf
 ex sudo install -o root -g root -m a=r,u+w ./nginx.conf /etc/nginx/nginx.conf
+ex rm ./nginx.conf
 ex sudo fw services add 80
