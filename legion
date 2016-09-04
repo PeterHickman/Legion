@@ -36,7 +36,7 @@ end
 
 def required_args(hash, *keys)
   keys.each do |key|
-    fail "Missing key [#{key}]" unless hash.key?(key)
+    raise "Missing key [#{key}]" unless hash.key?(key)
   end
 end
 
@@ -104,7 +104,7 @@ def ex(command)
   log "Command: #{command}".blue, '>'
 
   if $pretend
-    log "The host says something", '<'
+    log 'The host says something', '<'
   else
     begin
       $ssh.exec!(command) do |_, stream, data|
@@ -118,7 +118,7 @@ def ex(command)
           end
         end
       end
-    rescue Exception => e
+    rescue StandardError => e
       if command == 'reboot'
         # Yeah, the reboot command will cut the connection
         # We're expecting that so we'll let it slide
@@ -193,11 +193,11 @@ def process_file(filename, connector = nil)
 end
 
 $pretend = false
-$logger = File.open("legion.log", 'w')
+$logger = File.open('legion.log', 'w')
 
 args, script_files = opts(ARGV)
 required_args(args, 'host', 'password', 'port', 'username')
-fail "No script files have been supplied" if script_files.empty?
+raise 'No script files have been supplied' if script_files.empty?
 
 show_args(args, script_files)
 
