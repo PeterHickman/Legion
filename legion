@@ -15,10 +15,16 @@ def opts(list)
     if x.index('--') == 0
       if x.include?('=')
         x, y = x.split('=')
+        x = x.gsub(/^\-\-/, '').downcase
       else
-        y = list.shift
+        x = x.gsub(/^\-\-/, '').downcase
+
+        if x == 'pretend'
+          $pretend = true
+        else
+          y = list.shift
+        end
       end
-      x = x.gsub(/^\-\-/, '').downcase
       args[x] = y
     else
       script_files << x
@@ -43,7 +49,10 @@ def show_args(args, rem)
 end
 
 def log(message, connection = nil)
-  puts "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection || ':'} #{message}"
+  text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection || ':'} #{message}"
+
+  $logger.puts text
+  puts text
 end
 
 def make_subs(line)
@@ -65,6 +74,7 @@ end
 
 def connect_ssh(args)
   log 'Establishing ssh connection'.green
+  return if $pretend
 
   begin
     ssh = Net::SSH.start(args['host'], args['username'], password: args['password'], port: args['port'])
@@ -78,6 +88,7 @@ end
 
 def connect_sftp(args)
   log 'Establishing sftp connection'.green
+  return if $pretend
 
   begin
     sftp = Net::SFTP.start(args['host'], args['username'], password: args['password'], port: args['port'])
@@ -92,25 +103,29 @@ end
 def ex(command)
   log "Command: #{command}".blue, '>'
 
-  begin
-    $ssh.exec!(command) do |_, stream, data|
-      if stream == :stdout
-        data.split("\n").each do |line|
-          log line, '<'
-        end
-      elsif stream == :stderr
-        data.split("\n").each do |line|
-          log line.red, '<'
+  if $pretend
+    log "The host says something", '<'
+  else
+    begin
+      $ssh.exec!(command) do |_, stream, data|
+        if stream == :stdout
+          data.split("\n").each do |line|
+            log line, '<'
+          end
+        elsif stream == :stderr
+          data.split("\n").each do |line|
+            log line.red, '<'
+          end
         end
       end
-    end
-  rescue Exception => e
-    if command == 'reboot'
-      # Yeah, the reboot command will cut the connection
-      # We're expecting that so we'll let it slide
-    else
-      log "Exception: #{e}".red, ':'
-      e.backtrace.each { |line| log line.red, ':' }
+    rescue Exception => e
+      if command == 'reboot'
+        # Yeah, the reboot command will cut the connection
+        # We're expecting that so we'll let it slide
+      else
+        log "Exception: #{e}".red, ':'
+        e.backtrace.each { |line| log line.red, ':' }
+      end
     end
   end
 end
@@ -119,6 +134,8 @@ def copy_file(v)
   from, to = v.split(/\s+/)
 
   log "Copy file [#{from}] to [#{to}]".blue, '>'
+
+  return if $pretend
 
   begin
     $sftp.upload!(from, to)
@@ -174,6 +191,9 @@ def process_file(filename, connector = nil)
 
   log "Completed #{filename}".green
 end
+
+$pretend = false
+$logger = File.open("legion.log", 'w')
 
 args, script_files = opts(ARGV)
 required_args(args, 'host', 'password', 'port', 'username')
