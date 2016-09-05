@@ -1,0 +1,2 @@
+#!/bin/sh -e
+su postgres /usr/local/bin/db_backup

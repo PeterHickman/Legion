@@ -8,5 +8,6 @@ ex rm ./nginx.conf
 
 copy scripts/files/logrotate_nginx ./logrotate_nginx
 ex sudo install -o root -g root -m a=r,u+w ./logrotate_nginx /etc/logrotate.d/nginx
+ex rm ./logrotate_nginx
 
 ex sudo fw services add 80
