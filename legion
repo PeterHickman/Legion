@@ -215,7 +215,7 @@ def process_file(filename, connector = ':')
 end
 
 $pretend = false
-$logger = File.open('legion.log', 'w')
+$logger = File.open("legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log", 'w')
 
 args, script_files = opts(ARGV)
 required_args(args, 'host', 'password', 'port', 'username')
