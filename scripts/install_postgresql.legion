@@ -1,0 +1,14 @@
+# Install postgres
+
+runsudo scripts/package.sh install postgresql-9.5
+runsudo scripts/package.sh install postgresql-server-dev-9.5
+
+copy scripts/files/pg_hba.conf ./pg_hba.conf
+ex sudo install -o postgres -g postgres -m ug=r,u+w ./pg_hba.conf /etc/postgresql/9.5/main/pg_hba.conf
+ex rm ./pg_hba.conf
+
+copy scripts/files/db_backup.sh ./db_backup.sh
+ex sudo install -o postgres -g postgres -m a=rx,u+w ./db_backup.sh /usr/local/bin/db_backup.sh
+ex rm ./db_backup.sh
+
+# Create /var/local/backup
