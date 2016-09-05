@@ -11,4 +11,6 @@ copy scripts/files/db_backup.sh ./db_backup.sh
 ex sudo install -o postgres -g postgres -m a=rx,u+w ./db_backup.sh /usr/local/bin/db_backup.sh
 ex rm ./db_backup.sh
 
-# Create /var/local/backup
+ex sudo mkdir /var/local/backup
+ex sudo chown postgres:postgres /var/local/backup
+ex sudo chmod a=rx,u+w /var/local/backup
