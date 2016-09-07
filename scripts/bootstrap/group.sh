@@ -1,6 +1,6 @@
 #!/bin/sh
 
-GROUP='sshlogin'
+GROUP=$1
 
 FOUND=`grep ^$GROUP /etc/group`
 

@@ -13,7 +13,7 @@ else
 fi
 
 echo "Checking group membership"
-adduser $ADMIN sudo
+adduser $ADMIN less
 adduser $ADMIN sshlogin
 
 KEY_FILE="/home/$ADMIN/.ssh/id_rsa"

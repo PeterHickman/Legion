@@ -88,7 +88,8 @@ The first step is to make sure that the existing packages are up to date and the
 Commands like `run scripts/updates.sh` tell Legion to upload the file `updates.sh` from the `scripts` directory that came with Legion to the target machine and run it there. `updates.sh` is an ordinary bash script.
 
 ```
-run scripts/bootstrap/sshlogin_group.sh
+run scripts/bootstrap/group.sh sshlogin
+run scripts/bootstrap/group.sh less
 
 run scripts/bootstrap/timezone.sh {timezone}
 
@@ -97,7 +98,7 @@ run scripts/bootstrap/hostname.sh {host}
 run scripts/bootstrap/etc_hosts.rb
 ```
 
-More scripts are uploaded and run to create the `sshlogin` group (members of this group are the only ones who can log in via ssh), set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
+More scripts are uploaded and run to create the `sshlogin` and `less` groups, set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
 
 Of note here is the `{timezone}` argument to the timezone configuration. In the `server.legion` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.legion` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
 
