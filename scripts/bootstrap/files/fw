@@ -76,6 +76,7 @@ usage()
   echo $SELF: available commands
   echo
   echo $SELF start - start the firewall
+  echo $SELF stop - stop the firewall
   echo $SELF list - list the current firewall rules
   echo $SELF status - a summary of the current firewall
   echo $SELF blacklist add \<address\> - add \<address\> to the blacklist
@@ -249,6 +250,30 @@ start()
   echo "Firewall setup and saved"
 }
 
+stop()
+{
+  # Flush all current rules from iptables
+
+  iptables --flush
+  iptables --delete-chain
+  iptables -t nat --flush 
+  iptables -t nat --delete-chain 
+  iptables -t mangle --flush 
+  iptables -t mangle --delete-chain 
+
+  # Set default policies for INPUT, FORWARD and OUTPUT chains
+
+  iptables -P INPUT ACCEPT 
+  iptables -P FORWARD ACCEPT 
+  iptables -P OUTPUT ACCEPT
+
+  # Save settings
+
+  iptables-save > $SAVED_RULES
+
+  echo "Firewall setup and saved"
+}
+
 status()
 {
   echo "The firewall is allowing access via:"
@@ -269,6 +294,7 @@ shift
 
 case $COMMAND in
   start)     start ;;
+  stop)      stop ;;
   list)      list ;;
   status)    status ;;
   blacklist) blacklist $* ;;
