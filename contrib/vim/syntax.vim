@@ -2,7 +2,7 @@ if exists("b:current_syntax")
     finish
 endif
 
-syntax keyword legionFunction run runsudo copy ex call set
+syntax keyword legionFunction run copy ex call set
 
 syntax match legionComment "\v#.*$"
 

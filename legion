@@ -166,17 +166,6 @@ def run_script(v)
   ex("rm ./#{basename}")
 end
 
-def run_as_sudo(v)
-  filename, args = v.split(/\s+/, 2)
-
-  basename = File.basename(filename)
-
-  copy_file("#{filename} ./#{basename}")
-  ex("chmod u+x ./#{basename}")
-  ex("sudo ./#{basename} #{args}")
-  ex("rm ./#{basename}")
-end
-
 def process_file(filename, connector = ':')
   log "Reading commands from #{filename}", connector
 
@@ -201,8 +190,6 @@ def process_file(filename, connector = ':')
       copy_file(v)
     when 'run'
       run_script(v)
-    when 'runsudo'
-      run_as_sudo(v)
     when 'set'
       k, v = v.split(/\s+/, 2)
       k = k.downcase
