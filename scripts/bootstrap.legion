@@ -31,7 +31,7 @@ run scripts/bootstrap/group.sh less
 
 copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
 run scripts/user_account.sh {admin}
-adduser {admin} less
+ex adduser {admin} less
 
 copy scripts/bootstrap/files/sudoers /etc/sudoers
 ex chmod ug=r /etc/sudoers
