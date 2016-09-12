@@ -1,7 +1,7 @@
 # Install postgres
 
-runsudo scripts/package.sh install postgresql-9.5
-runsudo scripts/package.sh install postgresql-server-dev-9.5
+run scripts/package.sh install postgresql-9.5
+run scripts/package.sh install postgresql-server-dev-9.5
 
 copy scripts/files/pg_hba.conf ./pg_hba.conf
 ex sudo install -o postgres -g postgres -m ug=r,u+w ./pg_hba.conf /etc/postgresql/9.5/main/pg_hba.conf
