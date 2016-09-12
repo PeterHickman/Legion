@@ -57,6 +57,8 @@ def log(message, connection = ':')
               message.green
             elsif connection == '>'
               message.blue
+            elsif connection == '!'
+              message.red
             else
               message
             end
@@ -207,7 +209,7 @@ def process_file(filename, connector = ':')
       $subs[k] = v
       log "Set [#{k}] to [#{v}]", '>'
     else
-      log "Unknown command [#{c}] at line #{line_number} of #{filename}"
+      log "Unknown command [#{c}] at line #{line_number} of #{filename}", '!'
     end
   end
 
