@@ -30,7 +30,8 @@ run scripts/bootstrap/group.sh sshlogin
 run scripts/bootstrap/group.sh less
 
 copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
-run scripts/bootstrap/admin_user.sh {admin}
+run scripts/user_account.sh {admin}
+adduser {admin} less
 
 copy scripts/bootstrap/files/sudoers /etc/sudoers
 ex chmod ug=r /etc/sudoers
