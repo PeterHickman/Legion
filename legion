@@ -25,7 +25,11 @@ def opts(list)
           y = list.shift
         end
       end
-      args[x] = y
+      if x == 'set'
+        $subs[x] = y
+      else
+        args[x] = y
+      end
     else
       script_files << x
     end
@@ -46,6 +50,10 @@ def show_args(args, rem)
     log "\t#{k} => #{v}"
   end
   log "\tcommands => #{rem.inspect}"
+
+  $subs.each do |k, v|
+    log "\tSet [#{k}] = [#{v}]"
+  end
 end
 
 def log(message, connection = ':')
@@ -203,6 +211,7 @@ def process_file(filename, connector = ':')
   log "Completed #{filename}"
 end
 
+$subs = {}
 $pretend = false
 $logger = File.open("legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log", 'w')
 
@@ -214,8 +223,6 @@ show_args(args, script_files)
 
 $ssh  = connect_ssh(args)
 $sftp = connect_sftp(args)
-
-$subs = {}
 
 script_files.each do |script_file|
   process_file(script_file)
