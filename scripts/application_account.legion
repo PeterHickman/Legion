@@ -1,11 +1,28 @@
 # Set up an application account
 
+# First we need to set up the user
 copy scripts/bootstrap/files/authorized_keys /tmp/authorized_keys
 run scripts/user_account.sh {application_name}
 
-# Create capistrano database structure
-# Create database.yml
+# Set up the directory structure that runit and capistrano expect
+ex sudo su {application_name} -c "mkdir /home/{application_name}/service"
+ex sudo su {application_name} -c "mkdir -p /home/{application_name}/{application_name}/shared"
+ex sudo su {application_name} -c "mkdir -p /home/{application_name}/{application_name}/releases"
 
-# Set up runit
+# Create an initial database.yml file
+copy scripts/files/database.yml /tmp/database.yml
+ex sed 's/APPLICATION_NAME/{application_name}/g' < /tmp/database.yml > /tmp/database.yml.new
+ex sudo su {application_name} -c "cp /tmp/database.yml.new /home/{application_name}/{application_name}/shared/database.yml"
+ex rm /tmp/database.yml
+ex rm /tmp/database.yml.new
 
+# Set up runit so we can run tasks
+ex sudo mkdir /etc/service/runsvdir-{application_name}
+copy scripts/files/runsvdir /tmp/runsvdir
+ex sed 's/APPLICATION_NAME/{application_name}/g' < /tmp/runsvdir > /tmp/runsvdir.new
+ex sudo cp /tmp/runsvdir.new /etc/service/runsvdir-{application_name}/run
+ex rm /tmp/runsvdir
+ex rm /tmp/runsvdir.new
+
+# Configure postgresql to allow this user access and create a blank database
 run scripts/configure_postgresql.sh {application_name}
