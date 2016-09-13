@@ -1,6 +1,6 @@
 # Set up an application account
 
-copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
+copy scripts/bootstrap/files/authorized_keys /tmp/authorized_keys
 run scripts/user_account.sh {application_name}
 
 # Create capistrano database structure
@@ -8,5 +8,4 @@ run scripts/user_account.sh {application_name}
 
 # Set up runit
 
-run sudo su postgres -c 'psql -c "CREATE ROLE {application_name} WITH NOSUPERUSER CREATEDB NOCREATEROLE NOCREATEUSER INHERIT LOGIN;"'
-run createdb {application_name}_production -E utf8 -U {application_name} -O {application_name}
+run scripts/configure_postgresql.sh {application_name}

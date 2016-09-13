@@ -29,7 +29,7 @@ run scripts/bootstrap/etc_hosts.rb
 run scripts/bootstrap/group.sh sshlogin
 run scripts/bootstrap/group.sh less
 
-copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
+copy scripts/bootstrap/files/authorized_keys /tmp/authorized_keys
 run scripts/user_account.sh {admin}
 ex adduser {admin} less
 

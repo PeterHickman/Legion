@@ -23,7 +23,9 @@ $SUDO_PREFIX adduser $USER sshlogin
 
 KEY_FILE="/home/$USER/.ssh/id_rsa"
 
-if [ -r "$KEY_FILE" ]; then
+FOUND=`$SUDO_PREFIX [ -r "$KEY_FILE" ] && echo 'yes'`
+
+if [ "$FOUND" = "yes" ]; then
   echo "SSH keygen already run"
 else
   echo "Setting up SSH keygen"
@@ -32,7 +34,7 @@ fi
 
 AUTH_FILE="/home/$USER/.ssh/authorized_keys"
 
-$SUDO_PREFIX cat authorized_keys > $AUTH_FILE
+$SUDO_PREFIX su -l $USER -c "cat /tmp/authorized_keys > $AUTH_FILE"
 $SUDO_PREFIX chown $USER:$USER $AUTH_FILE
 $SUDO_PREFIX chmod a=r,u+w $AUTH_FILE
-rm authorized_keys
+rm /tmp/authorized_keys
