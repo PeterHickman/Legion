@@ -21,6 +21,7 @@ ex sudo mkdir /etc/service/runsvdir-{application_name}
 copy scripts/files/runsvdir /tmp/runsvdir
 ex sed 's/APPLICATION_NAME/{application_name}/g' < /tmp/runsvdir > /tmp/runsvdir.new
 ex sudo cp /tmp/runsvdir.new /etc/service/runsvdir-{application_name}/run
+ex sudo chmod a+x /etc/service/runsvdir-{application_name}/run
 ex rm /tmp/runsvdir
 ex rm /tmp/runsvdir.new
 
