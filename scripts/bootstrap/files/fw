@@ -12,6 +12,22 @@ SAVED_RULES=$TABLES_ROOT/rules.v4
 
 SELF=`basename $0`
 
+IS_UP='no'
+
+##
+# See if the firewall is up
+##
+is_up()
+{
+  FOUND=`iptables -L | grep BLACKLIST`
+
+  if [ "$FOUND" != "" ]; then
+    IS_UP='yes'
+  else
+    IS_UP='no'
+  fi
+}
+
 ##
 # These need to be true and there is no corrective action that we
 # can take if they are not
@@ -87,6 +103,11 @@ usage()
 
 blacklist()
 {
+  if [ "$IS_UP" = "no" ]; then
+    echo "The firewall is currently down. Unable to complete request"
+    exit 1
+  fi
+
   COMMAND=$1
   shift
 
@@ -137,6 +158,11 @@ blacklist_remove()
 
 services()
 {
+  if [ "$IS_UP" = "no" ]; then
+    echo "The firewall is currently down. Unable to complete request"
+    exit 1
+  fi
+
   COMMAND=$1
   shift
 
@@ -276,7 +302,13 @@ stop()
 
 status()
 {
-  echo "The firewall is allowing access via:"
+  if [ "$IS_UP" = "yes" ]; then
+    echo "The firewall is UP"
+  else
+    echo "The firewall is DOWN"
+  fi
+
+  echo "Allowing access via:"
   for PORT in `cat $SERVICES_FILE`
   do
     echo "  $PORT"
@@ -288,6 +320,7 @@ status()
 
 check
 needed
+is_up
 
 COMMAND=$1
 shift
@@ -299,5 +332,6 @@ case $COMMAND in
   status)    status ;;
   blacklist) blacklist $* ;;
   services)  services  $* ;;
+  service)   services  $* ;;
   *)         usage ;;
 esac
