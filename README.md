@@ -52,17 +52,33 @@ After the script has been run the target machine will:
 3. The hostname will be set
 4. The timezone will be set
 
-Ok. Given that the `bootstrap.legion` script is a general purpose script we need to put the target specific configuration in it's own file -- called `server.legion` in this example (which is for my Raspberry Pi)
+### Command line parameters
+
+|Option|Required|Description|
+|---|---|---|
+|`--host`|**required**|The name of the host to connect to|
+|`--port`|*optional*|The port to connect to the host on, defaults to `22`|
+|`--username`|**required**|The username to connect to the host with|
+|`--password`|**required**|The password that goes with the username, even when using ssh key exchange there needs to be a value for this, `dummy` would be fine|
+|`--pretend`|*optional*|Takes no argument. Runs the script but does not actually make the `ssh` and `sftp` connections and fakes the interaction|
+|`--set`|*optional*|Takes **two** arguments and acts like the `set` command within a `legion` script|
+
+Parameters can be supplied as either `--port=2222` or `--port 2222`
+
+### Running Legion
 
 ```
-# Describes the server
-
-set host pi1.local
-set timezone Europe/London
-set admin fred
+$ ./legion --host localhost \
+           --port 2222 \
+           --username root \
+           --password fredfred \
+           --set host pi1.local \
+           --set timezone Europe/London \
+           --set admin fred \
+           scripts/bootstrap.legion
 ```
 
-This file just defines three variables that are specific to the target's configuration. The hostname, timezone and the name of the admin account. With this the bootstrap script can simply refer to the variable names.
+Ok. Given that the `bootstrap.legion` script is a general purpose script we need to set up the target specific configuration. This is what the `--set` parameter is for. We set the hostname, timezone and the name of the admin account. With this the bootstrap script can simply refer to the variable names.
 
 Now lets walk through the bootstrap script itself, less the comments.
 
@@ -100,7 +116,7 @@ run scripts/bootstrap/etc_hosts.rb
 
 More scripts are uploaded and run to create the `sshlogin` and `less` groups, set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
 
-Of note here is the `{timezone}` argument to the timezone configuration. In the `server.legion` script earlier we set `timezone` to `Europe/London`. When Legion encounters the line in the `bootstrap.legion` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
+Of note here is the `{timezone}` argument to the timezone configuration. We set this earlier  on the command line to `Europe/London`. When Legion encounters the line in the `bootstrap.legion` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
 
 ```
 copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
@@ -134,16 +150,6 @@ Because a mistake can result in the target machine becoming unusable you will ne
 2. Set up a vm on Rackspace
 
 Basically test everything before deploying, then test it some more
-
-## Running Legion
-
-From the command line we call it thus
-
-    $ legion --host 1.2.3.4 --port 22 --username root --password secret server.legion bootstrap.legion
-
-All four parameters must be given even if there are sane defaults (for `port` for example) or they might not be required (`password` is not needed if you are using ssh key exchange to the admin account -- just give it some dummy value)
-
-After the parameters are the script files that will be run in the order given. There should be at least one
 
 ## Why the long ass file extension?
 
