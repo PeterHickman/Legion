@@ -8,5 +8,5 @@ run scripts/user_account.sh {application_name}
 
 # Set up runit
 
-sudo su postgres -c 'psql -c "CREATE ROLE {application_name} WITH NOSUPERUSER CREATEDB NOCREATEROLE NOCREATEUSER INHERIT LOGIN;"'
-createdb {application_name}_production -E utf8 -U {application_name} -O {application_name}
+run sudo su postgres -c 'psql -c "CREATE ROLE {application_name} WITH NOSUPERUSER CREATEDB NOCREATEROLE NOCREATEUSER INHERIT LOGIN;"'
+run createdb {application_name}_production -E utf8 -U {application_name} -O {application_name}
