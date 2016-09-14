@@ -9,7 +9,7 @@
 run scripts/updates.sh
 
 # We install ruby because some of the scripts that Legion uses are written in ruby
-run scripts/package.sh install ruby
+run scripts/package.sh install ruby-dev
 
 # All of these are just tools that I like to work with
 run scripts/package.sh install runit
