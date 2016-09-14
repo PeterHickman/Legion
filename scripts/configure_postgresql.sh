@@ -20,6 +20,7 @@ if [ ! -s x ]; then
 fi
 
 HBA=`head -1 x`
+rm x
 
 $SUDO_PREFIX su postgres -c "psql -c 'CREATE ROLE $APPLICATION_NAME WITH NOSUPERUSER CREATEDB INHERIT LOGIN;'"
 
