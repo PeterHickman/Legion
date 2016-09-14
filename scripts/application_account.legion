@@ -27,3 +27,13 @@ ex rm /tmp/runsvdir.new
 
 # Configure postgresql to allow this user access and create a blank database
 run scripts/configure_postgresql.sh {application_name}
+
+# Rails apps need bundler
+ex sudo gem install bundler
+
+# logrotate
+copy scripts/files/logrotate_application /tmp/logrotate_application
+ex sed 's/APPLICATION_NAME/{application_name}/g' < /tmp/logrotate_application > /tmp/logrotate_application.new
+ex sudo cp /tmp/logrotate_application.new /etc/logrotate.d/app-{application_name}-logs
+ex rm /tmp/logrotate_application
+ex rm /tmp/logrotate_application.new
