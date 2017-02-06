@@ -79,7 +79,9 @@ class Legion
 
   def required_args(*keys)
     keys.each do |key|
-      raise "Missing key [#{key}]" unless @args.key?(key)
+      next if @args.key?(key)
+      log "Required key [#{key}] is missing", '!'
+      exit
     end
   end
 
@@ -108,7 +110,7 @@ class Legion
     begin
       ssh = Net::SSH.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
     rescue StandardError => e
-      log "Failed to open ssh connection: #{e}"
+      log "Failed to open ssh connection: #{e}", '!'
       exit
     end
 
@@ -122,7 +124,7 @@ class Legion
     begin
       sftp = Net::SFTP.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
     rescue StandardError => e
-      log "Failed to open sftp connection: #{e}"
+      log "Failed to open sftp connection: #{e}", '!'
       exit
     end
 
@@ -142,7 +144,8 @@ class Legion
         t << @subs[line[(at1 + 1)...at2]]
         line = line[(at2 + 1)..-1]
       rescue Exception => e
-        raise "Unable to interpolate [#{line[(at1 + 1)...at2]}] as it has not been set from #{@subs.keys.inspect}"
+        log "Unable to interpolate [#{line[(at1 + 1)...at2]}] as it has not been set from #{@subs.keys.inspect}", '!'
+        exit
       end
     end
     t << line
