@@ -5,228 +5,243 @@ require 'net/ssh'
 require 'net/sftp'
 require 'colorize'
 
-def opts(list)
-  args = {}
-  script_files = []
+class Legion
+  def initialize(list)
+    @args = {}
+    @subs = {}
+    @script_files = []
+    @pretend = false
 
-  while list.any?
-    x = list.shift
+    @logger = File.open("legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log", 'w')
 
-    if x.index('--') == 0
-      if x.include?('=')
-        x, y = x.split('=')
-        x = x.gsub(/^\-\-/, '').downcase
-      else
-        x = x.gsub(/^\-\-/, '').downcase
+    opts(list)
 
-        if x == 'pretend'
-          $pretend = true
+    required_args('host', 'password', 'port', 'username')
+    raise 'No script files have been supplied' if @script_files.empty?
+
+    show_args
+  end
+
+  def process
+    @ssh  = connect_ssh
+    @sftp = connect_sftp
+
+    @script_files.each do |script_file|
+      process_file(script_file)
+    end
+
+    log 'Done'
+  end
+
+  private
+
+  def show_args
+    log 'Arguments:'
+    @args.each do |k, v|
+      log "\t#{k} => #{v}"
+    end
+    log "\tcommands => #{@script_files.inspect}"
+
+    @subs.each do |k, v|
+      log "\tSet [#{k}] = [#{v}]"
+    end
+  end
+
+  def opts(list)
+    while list.any?
+      x = list.shift
+
+      if x.index('--') == 0
+        if x.include?('=')
+          x, y = x.split('=')
+          x = x.gsub(/^\-\-/, '').downcase
         else
-          y = list.shift
+          x = x.gsub(/^\-\-/, '').downcase
+
+          if x == 'pretend'
+            @pretend = true
+            y = true
+          else
+            y = list.shift
+          end
         end
-      end
-      if x == 'set'
-        z = list.shift
-        $subs[y] = z
+        if x == 'set'
+          z = list.shift
+          @subs[y] = z
+        else
+          @args[x] = y
+        end
       else
-        args[x] = y
+        @script_files << x
       end
-    else
-      script_files << x
     end
   end
 
-  return args, script_files
-end
-
-def required_args(hash, *keys)
-  keys.each do |key|
-    raise "Missing key [#{key}]" unless hash.key?(key)
-  end
-end
-
-def show_args(args, rem)
-  log 'Arguments:'
-  args.each do |k, v|
-    log "\t#{k} => #{v}"
-  end
-  log "\tcommands => #{rem.inspect}"
-
-  $subs.each do |k, v|
-    log "\tSet [#{k}] = [#{v}]"
-  end
-end
-
-def log(message, connection = ':')
-  text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
-
-  $logger.puts "#{text} #{message}"
-
-  message = if connection == ':'
-              message.green
-            elsif connection == '>'
-              message.blue
-            elsif connection == '!'
-              message.red
-            else
-              message
-            end
-
-  puts "#{text} #{message}"
-end
-
-def make_subs(line)
-  return line if line.index('{').nil?
-
-  t = ''
-
-  until line.index('{').nil?
-    at1 = line.index('{')
-    at2 = line.index('}')
-    t << line[0...at1]
-    t << $subs[line[(at1 + 1)...at2]]
-    line = line[(at2 + 1)..-1]
-  end
-  t << line
-
-  t
-end
-
-def connect_ssh(args)
-  log 'Establishing ssh connection'
-  return if $pretend
-
-  begin
-    ssh = Net::SSH.start(args['host'], args['username'], password: args['password'], port: args['port'])
-  rescue StandardError => e
-    log "Failed to open ssh connection: #{e}"
-    exit
+  def required_args(*keys)
+    keys.each do |key|
+      raise "Missing key [#{key}]" unless @args.key?(key)
+    end
   end
 
-  ssh
-end
+  def log(message, connection = ':')
+    text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
 
-def connect_sftp(args)
-  log 'Establishing sftp connection'
-  return if $pretend
+    @logger.puts "#{text} #{message}"
 
-  begin
-    sftp = Net::SFTP.start(args['host'], args['username'], password: args['password'], port: args['port'])
-  rescue StandardError => e
-    log "Failed to open sftp connection: #{e}"
-    exit
+    message = if connection == ':'
+                message.green
+              elsif connection == '>'
+                message.blue
+              elsif connection == '!'
+                message.red
+              else
+                message
+              end
+
+    puts "#{text} #{message}"
   end
 
-  sftp
-end
+  def connect_ssh()
+    log 'Establishing ssh connection'
+    return if @pretend
 
-def ex(command)
-  log "Command: #{command}", '>'
-
-  if $pretend
-    log 'The host says something', '<'
-  else
     begin
-      $ssh.exec!(command) do |_, stream, data|
-        if stream == :stdout
-          data.split("\n").each do |line|
-            log line, '<'
-          end
-        elsif stream == :stderr
-          data.split("\n").each do |line|
-            log line, '<'
+      ssh = Net::SSH.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
+    rescue StandardError => e
+      log "Failed to open ssh connection: #{e}"
+      exit
+    end
+
+    ssh
+  end
+
+  def connect_sftp()
+    log 'Establishing sftp connection'
+    return if @pretend
+
+    begin
+      sftp = Net::SFTP.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
+    rescue StandardError => e
+      log "Failed to open sftp connection: #{e}"
+      exit
+    end
+
+    sftp
+  end
+
+  def make_subs(line)
+    return line if line.index('{').nil?
+
+    t = ''
+
+    until line.index('{').nil?
+      at1 = line.index('{')
+      at2 = line.index('}')
+      t << line[0...at1]
+      begin
+        t << @subs[line[(at1 + 1)...at2]]
+        line = line[(at2 + 1)..-1]
+      rescue Exception => e
+        raise "Unable to interpolate [#{line[(at1 + 1)...at2]}] as it has not been set from #{@subs.keys.inspect}"
+      end
+    end
+    t << line
+
+    t
+  end
+
+  def ex(command)
+    log "Command: #{command}", '>'
+
+    if @pretend
+      log 'The host says something', '<'
+    else
+      begin
+        @ssh.exec!(command) do |_, stream, data|
+          if stream == :stdout
+            data.split("\n").each do |line|
+              log line, '<'
+            end
+          elsif stream == :stderr
+            data.split("\n").each do |line|
+              log line, '<'
+            end
           end
         end
+      rescue StandardError => e
+        if command == 'reboot'
+          # Yeah, the reboot command will cut the connection
+          # We're expecting that so we'll let it slide
+        else
+          log "Exception: #{e}", ':'
+          e.backtrace.each { |line| log line, ':' }
+        end
       end
+    end
+  end
+
+  def copy_file(v)
+    from, to = v.split(/\s+/)
+
+    log "Copy file [#{from}] to [#{to}]", '>'
+
+    return if @pretend
+
+    begin
+      @sftp.upload!(from, to)
     rescue StandardError => e
-      if command == 'reboot'
-        # Yeah, the reboot command will cut the connection
-        # We're expecting that so we'll let it slide
+      log "Unable to copy file: #{e}"
+    end
+  end
+
+  def run_script(v)
+    filename, args = v.split(/\s+/, 2)
+
+    basename = File.basename(filename)
+
+    copy_file("#{filename} ./#{basename}")
+    ex("chmod u+x ./#{basename}")
+    ex("./#{basename} #{args}")
+    ex("rm ./#{basename}")
+  end
+
+  def process_file(filename, connector = ':')
+    log "Reading commands from #{filename}", connector
+
+    line_number = 0
+    File.open(filename, 'r').each do |line|
+      line_number += 1
+
+      next if line =~ /^\s*$/
+      next if line =~ /^\s*\#/
+
+      line = make_subs(line)
+
+      c, v = line.chomp.split(/\s+/, 2)
+
+      case c.downcase
+      when 'ex'
+        ex(v)
+      when 'call'
+        process_file(v, '@')
+        log "Continuing with #{filename}"
+      when 'copy'
+        copy_file(v)
+      when 'run'
+        run_script(v)
+      when 'set'
+        k, v = v.split(/\s+/, 2)
+        k = k.downcase
+        @subs[k] = v
+        log "Set [#{k}] to [#{v}]", '>'
       else
-        log "Exception: #{e}", ':'
-        e.backtrace.each { |line| log line, ':' }
+        log "Unknown command [#{c}] at line #{line_number} of #{filename}", '!'
       end
     end
+
+    log "Completed #{filename}"
   end
 end
 
-def copy_file(v)
-  from, to = v.split(/\s+/)
-
-  log "Copy file [#{from}] to [#{to}]", '>'
-
-  return if $pretend
-
-  begin
-    $sftp.upload!(from, to)
-  rescue StandardError => e
-    log "Unable to copy file: #{e}"
-  end
-end
-
-def run_script(v)
-  filename, args = v.split(/\s+/, 2)
-
-  basename = File.basename(filename)
-
-  copy_file("#{filename} ./#{basename}")
-  ex("chmod u+x ./#{basename}")
-  ex("./#{basename} #{args}")
-  ex("rm ./#{basename}")
-end
-
-def process_file(filename, connector = ':')
-  log "Reading commands from #{filename}", connector
-
-  line_number = 0
-  File.open(filename, 'r').each do |line|
-    line_number += 1
-
-    next if line =~ /^\s*$/
-    next if line =~ /^\s*\#/
-
-    line = make_subs(line)
-
-    c, v = line.chomp.split(/\s+/, 2)
-
-    case c.downcase
-    when 'ex'
-      ex(v)
-    when 'call'
-      process_file(v, '@')
-      log "Continuing with #{filename}"
-    when 'copy'
-      copy_file(v)
-    when 'run'
-      run_script(v)
-    when 'set'
-      k, v = v.split(/\s+/, 2)
-      k = k.downcase
-      $subs[k] = v
-      log "Set [#{k}] to [#{v}]", '>'
-    else
-      log "Unknown command [#{c}] at line #{line_number} of #{filename}", '!'
-    end
-  end
-
-  log "Completed #{filename}"
-end
-
-$subs = {}
-$pretend = false
-$logger = File.open("legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log", 'w')
-
-args, script_files = opts(ARGV)
-required_args(args, 'host', 'password', 'port', 'username')
-raise 'No script files have been supplied' if script_files.empty?
-
-show_args(args, script_files)
-
-$ssh  = connect_ssh(args)
-$sftp = connect_sftp(args)
-
-script_files.each do |script_file|
-  process_file(script_file)
-end
-
-log 'Done'
+l = Legion.new(ARGV)
+l.process
