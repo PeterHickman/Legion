@@ -6,7 +6,8 @@ require 'net/sftp'
 require 'colorize'
 
 class Legion
-  VALID_ARGS = %w(username password host port pretend set log config)
+  VALID_ARGS = %w(username password host port pretend set log config).freeze
+  REQUIRED_ARGS = %w(username password host port).freeze
 
   def initialize(list)
     @args = {}
@@ -14,10 +15,10 @@ class Legion
     @script_files = []
     @pretend = false
 
-    @args['log'] = "legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log"
+    @args['log'] = "legion.#{Time.now.strftime('%Y%m%d-%H%M')}.log"
     opts(list)
 
-    required_args('host', 'password', 'port', 'username')
+    required_args(REQUIRED_ARGS)
     raise 'No script files have been supplied' if @script_files.empty?
 
     show_args
@@ -96,7 +97,7 @@ class Legion
   def opts_from_file(filename)
     x = ''
 
-    File.open(filename,'r').each do |line|
+    File.open(filename, 'r').each do |line|
       x << line.chomp
       x << ' '
     end
@@ -104,7 +105,7 @@ class Legion
     opts(x.split(/\s+/))
   end
 
-  def required_args(*keys)
+  def required_args(keys)
     keys.each do |key|
       next if @args.key?(key)
       log "Required key [#{key}] is missing", '!'
@@ -130,7 +131,7 @@ class Legion
     puts "#{text} #{message}"
   end
 
-  def connect_ssh()
+  def connect_ssh
     log 'Establishing ssh connection'
     return if @pretend
 
@@ -144,7 +145,7 @@ class Legion
     ssh
   end
 
-  def connect_sftp()
+  def connect_sftp
     log 'Establishing sftp connection'
     return if @pretend
 
@@ -167,11 +168,13 @@ class Legion
       at1 = line.index('{')
       at2 = line.index('}')
       t << line[0...at1]
-      begin
-        t << @subs[line[(at1 + 1)...at2]]
+
+      key = line[(at1 + 1)...at2]
+      if @subs.key?(key)
+        t << @subs[key]
         line = line[(at2 + 1)..-1]
-      rescue Exception => e
-        log "Unable to interpolate [#{line[(at1 + 1)...at2]}] as it has not been set from #{@subs.keys.sort.inspect}", '!'
+      else
+        log "Unable to interpolate [#{key}] as it has not been set from #{@subs.keys.sort.inspect}", '!'
         exit
       end
     end
@@ -239,7 +242,7 @@ class Legion
     log "Reading commands from #{filename}", connector
 
     line_number = 0
-    unless File.exists?(filename)
+    unless File.exist?(filename)
       log "Command file [#{filename}] is missing", '!'
       exit
     end
