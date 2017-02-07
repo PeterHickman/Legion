@@ -6,20 +6,23 @@ require 'net/sftp'
 require 'colorize'
 
 class Legion
+  VALID_ARGS = %w(username password host port pretend set log)
+
   def initialize(list)
     @args = {}
     @subs = {}
     @script_files = []
     @pretend = false
 
-    @logger = File.open("legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log", 'w')
-
+    @args['log'] = "legion.#{Time.now.strftime("%Y%m%d-%H%M")}.log"
     opts(list)
 
     required_args('host', 'password', 'port', 'username')
     raise 'No script files have been supplied' if @script_files.empty?
 
     show_args
+
+    @logger = File.open(@args['log'], 'w')
   end
 
   def process
@@ -55,8 +58,16 @@ class Legion
         if x.include?('=')
           x, y = x.split('=')
           x = x.gsub(/^\-\-/, '').downcase
+          unless VALID_ARGS.include?(x)
+            log "Unknown argument [#{x}]", '!'
+            exit
+          end
         else
           x = x.gsub(/^\-\-/, '').downcase
+          unless VALID_ARGS.include?(x)
+            log "Unknown argument [#{x}]", '!'
+            exit
+          end
 
           if x == 'pretend'
             @pretend = true
@@ -88,7 +99,7 @@ class Legion
   def log(message, connection = ':')
     text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
 
-    @logger.puts "#{text} #{message}"
+    @logger.puts "#{text} #{message}" if @logger
 
     message = if connection == ':'
                 message.green
