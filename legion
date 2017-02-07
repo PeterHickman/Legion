@@ -6,7 +6,7 @@ require 'net/sftp'
 require 'colorize'
 
 class Legion
-  VALID_ARGS = %w(username password host port pretend set log)
+  VALID_ARGS = %w(username password host port pretend set log config)
 
   def initialize(list)
     @args = {}
@@ -69,9 +69,12 @@ class Legion
             exit
           end
 
-          if x == 'pretend'
+          case x
+          when 'pretend'
             @pretend = true
             y = true
+          when 'config'
+            opts_from_file(list.shift)
           else
             y = list.shift
           end
@@ -86,6 +89,19 @@ class Legion
         @script_files << x
       end
     end
+
+    @args.delete('config')
+  end
+
+  def opts_from_file(filename)
+    x = ''
+
+    File.open(filename,'r').each do |line|
+      x << line.chomp
+      x << ' '
+    end
+
+    opts(x.split(/\s+/))
   end
 
   def required_args(*keys)
@@ -155,7 +171,7 @@ class Legion
         t << @subs[line[(at1 + 1)...at2]]
         line = line[(at2 + 1)..-1]
       rescue Exception => e
-        log "Unable to interpolate [#{line[(at1 + 1)...at2]}] as it has not been set from #{@subs.keys.inspect}", '!'
+        log "Unable to interpolate [#{line[(at1 + 1)...at2]}] as it has not been set from #{@subs.keys.sort.inspect}", '!'
         exit
       end
     end
@@ -223,6 +239,11 @@ class Legion
     log "Reading commands from #{filename}", connector
 
     line_number = 0
+    unless File.exists?(filename)
+      log "Command file [#{filename}] is missing", '!'
+      exit
+    end
+
     File.open(filename, 'r').each do |line|
       line_number += 1
 
