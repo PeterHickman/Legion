@@ -22,7 +22,7 @@ class Legion
 
     show_args
 
-    @logger = File.open(@args['log'], 'w')
+    @logger = File.open(@args['log'], 'a')
   end
 
   def process
