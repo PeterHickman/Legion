@@ -19,7 +19,10 @@ class Legion
     opts(list)
 
     required_args(REQUIRED_ARGS)
-    raise 'No script files have been supplied' if @script_files.empty?
+    if @script_files.empty?
+      log '!', 'No script file(s) supplied'
+      exit
+    end
 
     show_args
 
@@ -34,20 +37,20 @@ class Legion
       process_file(script_file)
     end
 
-    log 'Done'
+    log ':', 'Done'
   end
 
   private
 
   def show_args
-    log 'Arguments:'
+    log ':', 'Arguments:'
     @args.each do |k, v|
-      log "\t#{k} => #{v}"
+      log ':', "\t#{k} => #{v}"
     end
-    log "\tcommands => #{@script_files.inspect}"
+    log ':', "\tcommands => #{@script_files.inspect}"
 
     @subs.each do |k, v|
-      log "\tSet [#{k}] = [#{v}]"
+      log ':', "\tSet [#{k}] = [#{v}]"
     end
   end
 
@@ -60,13 +63,13 @@ class Legion
           x, y = x.split('=')
           x = x.gsub(/^\-\-/, '').downcase
           unless VALID_ARGS.include?(x)
-            log "Unknown argument [#{x}]", '!'
+            log '!', "Unknown argument [#{x}]"
             exit
           end
         else
           x = x.gsub(/^\-\-/, '').downcase
           unless VALID_ARGS.include?(x)
-            log "Unknown argument [#{x}]", '!'
+            log '!', "Unknown argument [#{x}]"
             exit
           end
 
@@ -108,21 +111,22 @@ class Legion
   def required_args(keys)
     keys.each do |key|
       next if @args.key?(key)
-      log "Required key [#{key}] is missing", '!'
+      log '!', "Required key [#{key}] is missing"
       exit
     end
   end
 
-  def log(message, connection = ':')
+  def log(connection, message)
     text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
 
     @logger.puts "#{text} #{message}" if @logger
 
-    message = if connection == ':'
+    message = case connection
+              when ':', '@'
                 message.green
-              elsif connection == '>'
+              when '>'
                 message.blue
-              elsif connection == '!'
+              when '!'
                 message.red
               else
                 message
@@ -132,13 +136,13 @@ class Legion
   end
 
   def connect_ssh
-    log 'Establishing ssh connection'
+    log ':', 'Establishing ssh connection'
     return if @pretend
 
     begin
       ssh = Net::SSH.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
     rescue StandardError => e
-      log "Failed to open ssh connection: #{e}", '!'
+      log '!', "Failed to open ssh connection: #{e}"
       exit
     end
 
@@ -146,13 +150,13 @@ class Legion
   end
 
   def connect_sftp
-    log 'Establishing sftp connection'
+    log ':', 'Establishing sftp connection'
     return if @pretend
 
     begin
       sftp = Net::SFTP.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
     rescue StandardError => e
-      log "Failed to open sftp connection: #{e}", '!'
+      log '!', "Failed to open sftp connection: #{e}"
       exit
     end
 
@@ -174,7 +178,7 @@ class Legion
         t << @subs[key]
         line = line[(at2 + 1)..-1]
       else
-        log "Unable to interpolate [#{key}] as it has not been set from #{@subs.keys.sort.inspect}", '!'
+        log '!', "Unable to interpolate [#{key}] as it has not been set from #{@subs.keys.sort.inspect}"
         exit
       end
     end
@@ -184,20 +188,20 @@ class Legion
   end
 
   def ex(command)
-    log "Command: #{command}", '>'
+    log '>', "Command: #{command}"
 
     if @pretend
-      log 'The host says something', '<'
+      log '<', 'The host says something'
     else
       begin
         @ssh.exec!(command) do |_, stream, data|
           if stream == :stdout
             data.split("\n").each do |line|
-              log line, '<'
+              log '<', line
             end
           elsif stream == :stderr
             data.split("\n").each do |line|
-              log line, '<'
+              log '<', line
             end
           end
         end
@@ -206,8 +210,8 @@ class Legion
           # Yeah, the reboot command will cut the connection
           # We're expecting that so we'll let it slide
         else
-          log "Exception: #{e}", ':'
-          e.backtrace.each { |line| log line, ':' }
+          log '!', "Exception: #{e}"
+          e.backtrace.each { |line| log ':', line }
         end
       end
     end
@@ -216,14 +220,14 @@ class Legion
   def copy_file(v)
     from, to = v.split(/\s+/)
 
-    log "Copy file [#{from}] to [#{to}]", '>'
+    log '>', "Copy file [#{from}] to [#{to}]"
 
     return if @pretend
 
     begin
       @sftp.upload!(from, to)
     rescue StandardError => e
-      log "Unable to copy file: #{e}"
+      log '!', "Unable to copy file: #{e}"
     end
   end
 
@@ -239,11 +243,11 @@ class Legion
   end
 
   def process_file(filename, connector = ':')
-    log "Reading commands from #{filename}", connector
+    log connector, "Reading commands from #{filename}"
 
     line_number = 0
     unless File.exist?(filename)
-      log "Command file [#{filename}] is missing", '!'
+      log '!', "Command file [#{filename}] is missing"
       exit
     end
 
@@ -262,7 +266,7 @@ class Legion
         ex(v)
       when 'call'
         process_file(v, '@')
-        log "Continuing with #{filename}"
+        log ':', "Continuing with #{filename}"
       when 'copy'
         copy_file(v)
       when 'run'
@@ -271,13 +275,13 @@ class Legion
         k, v = v.split(/\s+/, 2)
         k = k.downcase
         @subs[k] = v
-        log "Set [#{k}] to [#{v}]", '>'
+        log '>', "Set [#{k}] to [#{v}]"
       else
-        log "Unknown command [#{c}] at line #{line_number} of #{filename}", '!'
+        log '!', "Unknown command [#{c}] at line #{line_number} of #{filename}"
       end
     end
 
-    log "Completed #{filename}"
+    log ':', "Completed #{filename}"
   end
 end
 
