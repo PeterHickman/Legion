@@ -266,7 +266,7 @@ class Legion
         ex(v)
       when 'call'
         process_file(v, '@')
-        log ':', "Continuing with #{filename}"
+        log connector, "Continuing with #{filename}"
       when 'copy'
         copy_file(v)
       when 'run'
