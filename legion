@@ -59,15 +59,16 @@ class Legion
       x = list.shift
 
       if x.index('--') == 0
+        x = x.gsub(/^\-\-/, '').downcase
+
         if x.include?('=')
           x, y = x.split('=')
-          x = x.gsub(/^\-\-/, '').downcase
+
           unless VALID_ARGS.include?(x)
             log '!', "Unknown argument [#{x}]"
             exit
           end
         else
-          x = x.gsub(/^\-\-/, '').downcase
           unless VALID_ARGS.include?(x)
             log '!', "Unknown argument [#{x}]"
             exit
@@ -83,6 +84,7 @@ class Legion
             y = list.shift
           end
         end
+
         if x == 'set'
           z = list.shift
           @subs[y] = z
