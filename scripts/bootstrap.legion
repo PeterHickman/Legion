@@ -20,6 +20,11 @@ run scripts/package.sh install curl
 run scripts/package.sh install traceroute
 run scripts/package.sh install lsof
 run scripts/package.sh install nscd
+run scripts/package.sh install gcc
+run scripts/package.sh install make
+
+run scripts/package.sh install libssl-dev
+run scripts/package.sh install libssl1.0.0
 
 run scripts/bootstrap/timezone.sh {timezone}
 run scripts/bootstrap/hostname.sh {host}
