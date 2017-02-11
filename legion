@@ -208,7 +208,7 @@ class Legion
           end
         end
       rescue StandardError => e
-        if command == 'reboot'
+        if command.include?('reboot')
           # Yeah, the reboot command will cut the connection
           # We're expecting that so we'll let it slide
         else
