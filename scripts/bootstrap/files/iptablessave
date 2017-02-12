@@ -1,3 +1,0 @@
-#!/bin/sh
-iptables-save -c > /etc/iptables/rules.v4
-exit 0
