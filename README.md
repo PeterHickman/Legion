@@ -90,7 +90,7 @@ Once the script has been run it will be removed from the target machine
 
 ### `call` - Run another legion scripts
 
-Rather than have large, do it all files you can call other legion scripts with `call configure_filewall.legion`. Once the called script terminates execution of the current script will continue
+Rather than have large, do it all, files you can call other legion scripts with `call configure_filewall.legion`. Once the called script terminates execution of the current script will continue
 
 ### `set` - Set a variable to be used in templates
 
