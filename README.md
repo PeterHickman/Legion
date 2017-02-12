@@ -74,7 +74,7 @@ Legion has very few command
 
 Any line starting with a `#` is treated as a comment
 
-### `ex` - Execute a comand
+### `ex` - Execute a command
 
 The line `ex ls -l` will run the command `ls -l` on the target machine. The output of which will appear in the log file and on the screen
 
@@ -84,7 +84,7 @@ The command `copy fred.txt albert.txt` will copy the file `fred.txt` from the ho
 
 ### `run` - Run a script from the host on the target
 
-The command `run create_admin_group.sh` will copy the file `create_admin_group.sh` from the host machine to the target machine, make it executeable and run it. Any output form the script will appear in the log file and on the screen
+The command `run create_admin_group.sh` will copy the file `create_admin_group.sh` from the host machine to the target machine, make it executable and run it. Any output form the script will appear in the log file and on the screen
 
 Once the script has been run it will be removed from the target machine
 
@@ -98,7 +98,7 @@ Legion has a mini templating system and the `set` command is used to set variabl
 
 ## Templating
 
-The templating is only avaiable within legion scripts. With our previous example we set the variable `timezone` in the config file. We can use it in a script as follows:
+The templating is only available within legion scripts. With our previous example we set the variable `timezone` in the config file. We can use it in a script as follows:
 
 ```
 ...
