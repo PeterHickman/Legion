@@ -1,56 +1,20 @@
-# Legion - configuration and deployment software
+# Legion - scriptable access to remote servers via SSH
 
-Legion allows the automated deployment and configuration of machines in the vein of Chef or Ansible but it allows me to use my existing knowledge for configuring machines rather than having to learn a whole new framework
-
-It was motivated by my hosting provider going out of business and me having to deploy to a new server. Thats when I realised that I would have to do it all by hand :(
+Legion is a tool that allows a simple scripting language (with a mini template system) to run over SSH to a target system. The scripting language can issue commands, copy files from the host to the target and upload and execute stored scripts. I use it to automate the configuration of servers. It probably has other uses and there are certainly a million and one other (better) tools that do the same thing
 
 Why is it called "Legion"? Well I have created several such system before of such complexity that it made it harder to deploy despite their sweet architecture. I've written so many of them they are legion :)
 
 This time I have gone for the simplest solution
 
-## TL;DR
-
-Legion is a tool that allows a simple scripting language (with a mini templating system) to run over SSH to a target system. The scripting language can issue commands, copy files from the host to the target and upload and execute stored scripts. I use it to automate the configuration of servers. It probably has other uses and there are certainly a million and one other (better) tools that do the same thing
-
 ## Prerequisites
 
-### ssh is installed and running on the target machine
+Legion requires Ruby 1.9.3 or better because it currently uses the colorize gem. I will probably just steal the parts of colorize I require at some point so that even 1.8.7 can use legion
 
-Generally speaking this is a given but just to be sure I'll state it here
+So you need to colorize gem
 
-### root can log in via ssh with a password
-
-This is not always the case. Root usually does not have a password and the `/etc/ssh/sshd_config` file needs to have the following directive
-
-    PermitRootLogin yes
-
-This is bad security practice so create a good long password. Once we have bootstrapped the system it will be closed anyway
-
-Create a password for root if you don't have one
-
-### apt-get is the package manager
-
-This is just a statement of fact rather than a requirement. It wouldn't take much to have the system package manager agnostic -- using `yum` for example -- I just haven't had a reason to make the change yet
-
-## Warning!!!
-
-This is a work in progress and things will change
+    gem install colorize
 
 ## Using Legion
-
-Lets use the `bootstrap.legion` script as a worked example. The purpose of the script is to take a newly provisioned machine and configure it to a known baseline. Before we start to run the script the target machine will be:
-
-0. Running ssh
-1. Allow `root` to log in using a password
-2. `root` has a password
-
-After the script has been run the target machine will:
-
-0. Only allow access via ssh by key exchange
-1. The initial access will be by the named admin account
-2. The firewall is up and running allowing access only to port 22
-3. The hostname will be set
-4. The timezone will be set
 
 ### Command line parameters
 
@@ -62,12 +26,16 @@ After the script has been run the target machine will:
 |`--password`|**required**|The password that goes with the username, even when using ssh key exchange there needs to be a value for this, `dummy` would be fine|
 |`--pretend`|*optional*|Takes no argument. Runs the script but does not actually make the `ssh` and `sftp` connections and fakes the interaction|
 |`--set`|*optional*|Takes **two** arguments and acts like the `set` command within a `legion` script|
+|`--log`|*optional*| Sets the log file name to whatever is given as the parameter. By default the log file will be called `legion.YYYYMMDD-HHMM.log`|
+|`--config`|*optional*|An optional config file to save having really long command lines|
 
 Parameters can be supplied as either `--port=2222` or `--port 2222`
 
-### Running Legion
+### Config files
 
-```
+If we were to run legion with the following parameters
+
+```bash
 $ ./legion --host localhost \
            --port 2222 \
            --username root \
@@ -78,78 +46,71 @@ $ ./legion --host localhost \
            scripts/bootstrap.legion
 ```
 
-Ok. Given that the `bootstrap.legion` script is a general purpose script we need to set up the target specific configuration. This is what the `--set` parameter is for. We set the hostname, timezone and the name of the admin account. With this the bootstrap script can simply refer to the variable names.
-
-Now lets walk through the bootstrap script itself, less the comments.
+We could create a config file like this (called `server.txt`):
 
 ```
-run scripts/updates.sh
-
-run scripts/package.sh install ruby
-run scripts/package.sh install runit
-run scripts/package.sh install wget
-run scripts/package.sh install lynx
-run scripts/package.sh install vim
-run scripts/package.sh install htop
-run scripts/package.sh install curl
-run scripts/package.sh install mutt
-run scripts/package.sh install traceroute
-run scripts/package.sh install lsof
-run scripts/package.sh install pstree
-run scripts/package.sh install nscd
+--host localhost
+--port 2222
+--username root
+--password fredfred
+--set host pi1.local
+--set timezone Europe/London
+--set admin fred
 ```
 
-The first step is to make sure that the existing packages are up to date and then install the packages that we will need. Of all the packages `ruby` is the only essential one as it is required later in the bootstrap process.
+Note the lack of the line continuation markers (`\`). Now we are able to run legion like this:
 
-Commands like `run scripts/updates.sh` tell Legion to upload the file `updates.sh` from the `scripts` directory that came with Legion to the target machine and run it there. `updates.sh` is an ordinary bash script.
-
-```
-run scripts/bootstrap/group.sh sshlogin
-run scripts/bootstrap/group.sh less
-
-run scripts/bootstrap/timezone.sh {timezone}
-
-run scripts/bootstrap/hostname.sh {host}
-
-run scripts/bootstrap/etc_hosts.rb
+```bash
+$ ./legion --config server.txt scripts/bootstrap.legion
 ```
 
-More scripts are uploaded and run to create the `sshlogin` and `less` groups, set the timezone and hostname and finally make sure that the `/etc/hosts` file correctly reflects the hostname.
+Which simplifies things when we have multiple scripts to run. Command line parameters are processed in order so `--config server.txt --username admin` will overwrite the `username` value from `server.txt` (`root`) with the value `admin`
 
-Of note here is the `{timezone}` argument to the timezone configuration. We set this earlier  on the command line to `Europe/London`. When Legion encounters the line in the `bootstrap.legion` script it will replace `{timezone}` with `Europe/London` before running the script on the target machine. This allows us to have a machine specific configuration without having to duplicate the whole of the bootstrap script with just a few minor changes for each server we want to deploy.
+## Legion commands
+
+Legion has very few command
+
+### `#` - A comment
+
+Any line starting with a `#` is treated as a comment
+
+### `ex` - Execute a comand
+
+The line `ex ls -l` will run the command `ls -l` on the target machine. The output of which will appear in the log file and on the screen
+
+### `copy` - Copy a file from the host to the target
+
+The command `copy fred.txt albert.txt` will copy the file `fred.txt` from the host machine to `albert.txt` on the target machine. If the target file exists and is writeable it will overwrite the file, if not it will error
+
+### `run` - Run a script from the host on the target
+
+The command `run create_admin_group.sh` will copy the file `create_admin_group.sh` from the host machine to the target machine, make it executeable and run it. Any output form the script will appear in the log file and on the screen
+
+Once the script has been run it will be removed from the target machine
+
+### `call` - Run another legion scripts
+
+Rather than have large, do it all files you can call other legion scripts with `call configure_filewall.legion`. Once the called script terminates execution of the current script will continue
+
+### `set` - Set a variable to be used in templates
+
+Legion has a mini templating system and the `set` command is used to set variables in the same was at the command line arguments
+
+## Templating
+
+The templating is only avaiable within legion scripts. With our previous example we set the variable `timezone` in the config file. We can use it in a script as follows:
 
 ```
-copy scripts/bootstrap/files/authorized_keys /root/authorized_keys
-run scripts/bootstrap/admin_user.sh {admin}
+...
+run set_timezone.sh {timezone}
+...
 ```
 
-Legion copies the `authorized_keys` to the target machine and then runs the script to create the admin user
+Before this line is run `{timezone}` will be replaced by `Europe/London`
 
-```
-copy scripts/bootstrap/files/sudoers /etc/sudoers
-ex chmod ug=r /etc/sudoers
+## A worked example
 
-copy scripts/bootstrap/files/sshd_config /etc/ssh/sshd_config
-ex chmod a=r,u+w /etc/ssh/sshd_config
-
-call firewall.legion
-
-ex reboot
-```
-
-Finishing off we copy up our customised sudoers file and make sure the permissions are set correctly. The `ex` command executes the rest of the line directly on the target machine.
-
-After doing the same for `sshd_config` we configure the firewall. The firewall configuration in `firewall.legion` is just another Legion script but rather than fill this script with it's verbage we put it in it's own file and then call that instead. `call` can be used to call other Legion scripts to make things a little more modular
-
-## Testing the scripts
-
-Because a mistake can result in the target machine becoming unusable you will need to test the scripts before deployment. I personally use these methods:
-
-0. Set up a Raspberry Pi with either Debian or CentOS
-1. Use Oracle VirtualBox to run the target OS
-2. Set up a vm on Rackspace
-
-Basically test everything before deploying, then test it some more
+Would be nice
 
 ## Why the long ass file extension?
 
