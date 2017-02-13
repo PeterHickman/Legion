@@ -84,7 +84,7 @@ The command `copy fred.txt albert.txt` will copy the file `fred.txt` from the ho
 
 ### `run` - Run a script from the host on the target
 
-The command `run create_admin_group.sh` will copy the file `create_admin_group.sh` from the host machine to the target machine, make it executable and run it. Any output form the script will appear in the log file and on the screen
+The command `run create_admin_group.sh` will copy the file `create_admin_group.sh` from the host machine to the target machine, make it executable and run it. Any output from the script will appear in the log file and on the screen
 
 Once the script has been run it will be removed from the target machine
 
