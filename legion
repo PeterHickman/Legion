@@ -261,7 +261,7 @@ class Legion
 
       line = make_subs(line)
 
-      c, v = line.chomp.split(/\s+/, 2)
+      c, v = line.chomp.strip.split(/\s+/, 2)
 
       case c.downcase
       when 'ex'
