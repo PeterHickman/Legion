@@ -3,7 +3,62 @@
 
 require 'net/ssh'
 require 'net/sftp'
-require 'colorize'
+
+class String
+  ##
+  # Normal colours
+  ##
+  def black;   colorize(30) end
+  def red;     colorize(31) end
+  def green;   colorize(32) end
+  def yellow;  colorize(33) end
+  def blue;    colorize(34) end
+  def magenta; colorize(35) end
+  def cyan;    colorize(36) end
+  def white;   colorize(37) end
+
+  ##
+  # Bright colours
+  ##
+  def bright_black;   colorize(90) end
+  def bright_red;     colorize(91) end
+  def bright_green;   colorize(92) end
+  def bright_yellow;  colorize(93) end
+  def bright_blue;    colorize(94) end
+  def bright_magenta; colorize(95) end
+  def bright_cyan;    colorize(96) end
+  def bright_white;   colorize(97) end
+
+  ##
+  # Normal background colours
+  ##
+  def bg_black;   colorize(40) end
+  def bg_red;     colorize(41) end
+  def bg_green;   colorize(42) end
+  def bg_yellow;  colorize(43) end
+  def bg_blue;    colorize(44) end
+  def bg_magenta; colorize(45) end
+  def bg_cyan;    colorize(46) end
+  def bg_white;   colorize(47) end
+
+  ##
+  # Bright background colours
+  ##
+  def bg_bright_black;   colorize(100) end
+  def bg_bright_red;     colorize(101) end
+  def bg_bright_green;   colorize(102) end
+  def bg_bright_yellow;  colorize(103) end
+  def bg_bright_blue;    colorize(104) end
+  def bg_bright_magenta; colorize(105) end
+  def bg_bright_cyan;    colorize(106) end
+  def bg_bright_white;   colorize(107) end
+
+  private
+
+  def colorize(color_code)
+    "\e[#{color_code}m#{self}\e[0m"
+  end
+end
 
 class Legion
   VALID_ARGS = %w(username password host port pretend set log config).freeze

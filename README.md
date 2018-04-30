@@ -8,11 +8,7 @@ This time I have gone for the simplest solution
 
 ## Prerequisites
 
-Legion requires Ruby 1.9.3 or better because it currently uses the colorize gem. I will probably just steal the parts of colorize I require at some point so that even 1.8.7 can use legion
-
-So you need to colorize gem
-
-    gem install colorize
+None
 
 ## Using Legion
 
