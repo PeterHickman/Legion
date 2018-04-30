@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
 
+require 'rubygems'
 require 'net/ssh'
 require 'net/sftp'
 
@@ -197,7 +198,7 @@ class Legion
     return if @pretend
 
     begin
-      ssh = Net::SSH.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
+      ssh = Net::SSH.start(@args['host'], @args['username'], :password => @args['password'], :port => @args['port'])
     rescue StandardError => e
       log '!', "Failed to open ssh connection: #{e}"
       exit
@@ -211,7 +212,7 @@ class Legion
     return if @pretend
 
     begin
-      sftp = Net::SFTP.start(@args['host'], @args['username'], password: @args['password'], port: @args['port'])
+      sftp = Net::SFTP.start(@args['host'], @args['username'], :password => @args['password'], :port => @args['port'])
     rescue StandardError => e
       log '!', "Failed to open sftp connection: #{e}"
       exit
