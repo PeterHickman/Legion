@@ -2,7 +2,7 @@ if exists("b:current_syntax")
     finish
 endif
 
-syntax keyword legionFunction run copy ex call set
+syntax keyword legionFunction cmd copy config echo debug halt include
 
 syntax match legionComment "\v#.*$"
 

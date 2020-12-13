@@ -12,94 +12,48 @@ None
 
 ## Using Legion
 
-### Command line parameters
-
-|Option|Required|Description|
-|---|---|---|
-|`--host`|**required**|The name of the host to connect to|
-|`--port`|*optional*|The port to connect to the host on, defaults to `22`|
-|`--username`|**required**|The username to connect to the host with|
-|`--password`|**required**|The password that goes with the username, even when using ssh key exchange there needs to be a value for this, `dummy` would be fine|
-|`--pretend`|*optional*|Takes no argument. Runs the script but does not actually make the `ssh` and `sftp` connections and fakes the interaction|
-|`--set`|*optional*|Takes **two** arguments and acts like the `set` command within a `legion` script|
-|`--log`|*optional*| Sets the log file name to whatever is given as the parameter. By default the log file will be called `legion.YYYYMMDD-HHMM.log`|
-|`--config`|*optional*|An optional config file to save having really long command lines|
-
-Parameters can be supplied as either `--port=2222` or `--port 2222`
-
-### Config files
-
-If we were to run legion with the following parameters
-
-```bash
-$ ./legion --host localhost \
-           --port 2222 \
-           --username root \
-           --password fredfred \
-           --set host pi1.local \
-           --set timezone Europe/London \
-           --set admin fred \
-           scripts/bootstrap.legion
-```
-
-We could create a config file like this (called `server.txt`):
-
-```
---host localhost
---port 2222
---username root
---password fredfred
---set host pi1.local
---set timezone Europe/London
---set admin fred
-```
-
-Note the lack of the line continuation markers (`\`). Now we are able to run legion like this:
-
-```bash
-$ ./legion --config server.txt scripts/bootstrap.legion
-```
-
-Which simplifies things when we have multiple scripts to run. Command line parameters are processed in order so `--config server.txt --username admin` will overwrite the `username` value from `server.txt` (`root`) with the value `admin`
-
 ## Legion commands
 
 Legion has very few command
 
 ### `#` - A comment
 
-Any line starting with a `#` is treated as a comment
+Any line starting with a `#` is treated as a comment. Blank lines are skipped
 
-### `ex` - Execute a command
+### `CMD` - Execute a command
 
-The line `ex ls -l` will run the command `ls -l` on the target machine. The output of which will appear in the log file and on the screen
+The line `CMD ls -l` will run the command `ls -l` on the target machine. The output of which will appear in the log file and on the screen
 
-### `copy` - Copy a file from the host to the target
+### `COPY` - Copy a file from the host to the target
 
-The command `copy fred.txt albert.txt` will copy the file `fred.txt` from the host machine to `albert.txt` on the target machine. If the target file exists and is writeable it will overwrite the file, if not it will error
+The command `COPY fred.txt albert.txt` will copy the file `fred.txt` from the host machine to `albert.txt` on the target machine. If the target file exists and is writeable it will overwrite the file, if not it will error
 
-### `run` - Run a script from the host on the target
+### `CONFIG` - Set an internal variable
 
-The command `run create_admin_group.sh` will copy the file `create_admin_group.sh` from the host machine to the target machine, make it executable and run it. Any output from the script will appear in the log file and on the screen
+To set a variable `CONFIG timezone Europe/London` which can be used later in templates
 
-Once the script has been run it will be removed from the target machine
+### `ECHO` - Write a message out to the log
 
-### `call` - Run another legion scripts
+The line `ECHO Install Nginx` will display "Install Nginx" to the console and log
 
-Rather than have large, do it all, files you can call other legion scripts with `call configure_filewall.legion`. Once the called script terminates execution of the current script will continue
+### `DEBUG` - Display all the variables set with `CONFIG`
 
-### `set` - Set a variable to be used in templates
+Write out all the variables that were set by `CONFIG`
 
-Legion has a mini templating system and the `set` command is used to set variables in the same was at the command line arguments
+### `HALT` - Halt the process
+
+Once the `HALT` line is execute Legion will stop
+
+### `INCLUDE` - Start processing a new legion file
+
+Once `INCLUDE install_postgres.legion` is encountered the current script is suspended and `install_postgres.legion` will be run. Once `install_postgres.legion` completed the original script will continue to run
 
 ## Templating
 
 The templating is only available within legion scripts. With our previous example we set the variable `timezone` in the config file. We can use it in a script as follows:
 
 ```
-...
-run set_timezone.sh {timezone}
-...
+CMD set_timezone.sh {{timezone}}
 ```
 
 Before this line is run `{timezone}` will be replaced by `Europe/London`

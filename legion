@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
+# frozen_string_literal: true
 
 require 'rubygems'
 require 'net/ssh'
@@ -9,50 +10,142 @@ class String
   ##
   # Normal colours
   ##
-  def black;   colorize(30) end
-  def red;     colorize(31) end
-  def green;   colorize(32) end
-  def yellow;  colorize(33) end
-  def blue;    colorize(34) end
-  def magenta; colorize(35) end
-  def cyan;    colorize(36) end
-  def white;   colorize(37) end
+  def black
+    colorize(30)
+  end
+
+  def red
+    colorize(31)
+  end
+
+  def green
+    colorize(32)
+  end
+
+  def yellow
+    colorize(33)
+  end
+
+  def blue
+    colorize(34)
+  end
+
+  def magenta
+    colorize(35)
+  end
+
+  def cyan
+    colorize(36)
+  end
+
+  def white
+    colorize(37)
+  end
 
   ##
   # Bright colours
   ##
-  def bright_black;   colorize(90) end
-  def bright_red;     colorize(91) end
-  def bright_green;   colorize(92) end
-  def bright_yellow;  colorize(93) end
-  def bright_blue;    colorize(94) end
-  def bright_magenta; colorize(95) end
-  def bright_cyan;    colorize(96) end
-  def bright_white;   colorize(97) end
+  def bright_black
+    colorize(90)
+  end
+
+  def bright_red
+    colorize(91)
+  end
+
+  def bright_green
+    colorize(92)
+  end
+
+  def bright_yellow
+    colorize(93)
+  end
+
+  def bright_blue
+    colorize(94)
+  end
+
+  def bright_magenta
+    colorize(95)
+  end
+
+  def bright_cyan
+    colorize(96)
+  end
+
+  def bright_white
+    colorize(97)
+  end
 
   ##
   # Normal background colours
   ##
-  def bg_black;   colorize(40) end
-  def bg_red;     colorize(41) end
-  def bg_green;   colorize(42) end
-  def bg_yellow;  colorize(43) end
-  def bg_blue;    colorize(44) end
-  def bg_magenta; colorize(45) end
-  def bg_cyan;    colorize(46) end
-  def bg_white;   colorize(47) end
+  def bg_black
+    colorize(40)
+  end
+
+  def bg_red
+    colorize(41)
+  end
+
+  def bg_green
+    colorize(42)
+  end
+
+  def bg_yellow
+    colorize(43)
+  end
+
+  def bg_blue
+    colorize(44)
+  end
+
+  def bg_magenta
+    colorize(45)
+  end
+
+  def bg_cyan
+    colorize(46)
+  end
+
+  def bg_white
+    colorize(47)
+  end
 
   ##
   # Bright background colours
   ##
-  def bg_bright_black;   colorize(100) end
-  def bg_bright_red;     colorize(101) end
-  def bg_bright_green;   colorize(102) end
-  def bg_bright_yellow;  colorize(103) end
-  def bg_bright_blue;    colorize(104) end
-  def bg_bright_magenta; colorize(105) end
-  def bg_bright_cyan;    colorize(106) end
-  def bg_bright_white;   colorize(107) end
+  def bg_bright_black
+    colorize(100)
+  end
+
+  def bg_bright_red
+    colorize(101)
+  end
+
+  def bg_bright_green
+    colorize(102)
+  end
+
+  def bg_bright_yellow
+    colorize(103)
+  end
+
+  def bg_bright_blue
+    colorize(104)
+  end
+
+  def bg_bright_magenta
+    colorize(105)
+  end
+
+  def bg_bright_cyan
+    colorize(106)
+  end
+
+  def bg_bright_white
+    colorize(107)
+  end
 
   private
 
@@ -62,117 +155,40 @@ class String
 end
 
 class Legion
-  VALID_ARGS = %w(username password host port pretend set log config).freeze
-  REQUIRED_ARGS = %w(username password host port).freeze
-
   def initialize(list)
-    @args = {}
-    @subs = {}
     @script_files = []
-    @pretend = false
+    @options = {}
 
-    @args['log'] = "legion.#{Time.now.strftime('%Y%m%d-%H%M')}.log"
-    opts(list)
-
-    required_args(REQUIRED_ARGS)
-    if @script_files.empty?
-      log '!', 'No script file(s) supplied'
-      exit
+    list.each do |filename|
+      if File.exist?(filename)
+        @script_files << filename
+      else
+        dropdead "[#{filename}] is not a real file"
+      end
     end
 
-    show_args
+    Dir.mkdir('log') unless File.directory?('log')
 
-    @logger = File.open(@args['log'], 'a')
+    logfile_name = "log/legion.#{Time.now.strftime('%Y%m%d-%H%M')}.log"
+    @logger = File.open(logfile_name, 'w')
+
+    log '#', "Log file written to #{logfile_name}"
+
+    @ssh  = nil
+    @sftp = nil
   end
 
   def process
-    @ssh  = connect_ssh
-    @sftp = connect_sftp
+    log '#', "Legion command line #{@script_files.join(' ')}"
 
     @script_files.each do |script_file|
       process_file(script_file)
     end
 
-    log ':', 'Done'
+    log '#', 'Done'
   end
 
   private
-
-  def show_args
-    log ':', 'Arguments:'
-    @args.each do |k, v|
-      log ':', "\t#{k} => #{v}"
-    end
-    log ':', "\tcommands => #{@script_files.inspect}"
-
-    @subs.each do |k, v|
-      log ':', "\tSet [#{k}] = [#{v}]"
-    end
-  end
-
-  def opts(list)
-    while list.any?
-      x = list.shift
-
-      if x.index('--') == 0
-        x = x.gsub(/^\-\-/, '').downcase
-
-        if x.include?('=')
-          x, y = x.split('=')
-
-          unless VALID_ARGS.include?(x)
-            log '!', "Unknown argument [#{x}]"
-            exit
-          end
-        else
-          unless VALID_ARGS.include?(x)
-            log '!', "Unknown argument [#{x}]"
-            exit
-          end
-
-          case x
-          when 'pretend'
-            @pretend = true
-            y = true
-          when 'config'
-            opts_from_file(list.shift)
-          else
-            y = list.shift
-          end
-        end
-
-        if x == 'set'
-          z = list.shift
-          @subs[y] = z
-        else
-          @args[x] = y
-        end
-      else
-        @script_files << x
-      end
-    end
-
-    @args.delete('config')
-  end
-
-  def opts_from_file(filename)
-    x = ''
-
-    File.open(filename, 'r').each do |line|
-      x << line.chomp
-      x << ' '
-    end
-
-    opts(x.split(/\s+/))
-  end
-
-  def required_args(keys)
-    keys.each do |key|
-      next if @args.key?(key)
-      log '!', "Required key [#{key}] is missing"
-      exit
-    end
-  end
 
   def log(connection, message)
     text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
@@ -180,12 +196,14 @@ class Legion
     @logger.puts "#{text} #{message}" if @logger
 
     message = case connection
-              when ':', '@'
+              when ':'
                 message.green
               when '>'
                 message.blue
               when '!'
                 message.red
+              when '#'
+                message.yellow
               else
                 message
               end
@@ -193,15 +211,22 @@ class Legion
     puts "#{text} #{message}"
   end
 
+  def make_connections
+    return unless @ssh.nil?
+
+    check_options
+
+    @ssh = connect_ssh
+    @sftp = connect_sftp
+  end
+
   def connect_ssh
     log ':', 'Establishing ssh connection'
-    return if @pretend
 
     begin
-      ssh = Net::SSH.start(@args['host'], @args['username'], :password => @args['password'], :port => @args['port'])
+      ssh = Net::SSH.start(@options['host'], @options['username'], password: @options['password'], port: @options['port'])
     rescue StandardError => e
-      log '!', "Failed to open ssh connection: #{e}"
-      exit
+      dropdead "Failed to open ssh connection: #{e}"
     end
 
     ssh
@@ -209,105 +234,123 @@ class Legion
 
   def connect_sftp
     log ':', 'Establishing sftp connection'
-    return if @pretend
 
     begin
-      sftp = Net::SFTP.start(@args['host'], @args['username'], :password => @args['password'], :port => @args['port'])
+      sftp = Net::SFTP.start(@options['host'], @options['username'], password: @options['password'], port: @options['port'])
     rescue StandardError => e
-      log '!', "Failed to open sftp connection: #{e}"
-      exit
+      dropdead "Failed to open sftp connection: #{e}"
     end
 
     sftp
   end
 
-  def make_subs(line)
-    return line if line.index('{').nil?
+  def check_options
+    %w[host port username password].each do |k|
+      next if @options.key?(k)
 
-    t = ''
-
-    until line.index('{').nil?
-      at1 = line.index('{')
-      at2 = line.index('}')
-      t << line[0...at1]
-
-      key = line[(at1 + 1)...at2]
-      if @subs.key?(key)
-        t << @subs[key]
-        line = line[(at2 + 1)..-1]
-      else
-        log '!', "Unable to interpolate [#{key}] as it has not been set from #{@subs.keys.sort.inspect}"
-        exit
-      end
+      dropdead "Missing key [#{k}]"
     end
-    t << line
-
-    t
   end
 
-  def ex(command)
-    log '>', "Command: #{command}"
+  def interpolate(text)
+    line = text.dup
 
-    if @pretend
-      log '<', 'The host says something'
-    else
-      begin
-        @ssh.exec!(command) do |_, stream, data|
-          if stream == :stdout
-            data.split("\n").each do |line|
-              log '<', line
-            end
-          elsif stream == :stderr
-            data.split("\n").each do |line|
-              log '<', line
-            end
+    while line.include?('{{')
+      line =~ /({{([^}]+)}})/
+
+      t = $1.to_s
+      k = $2.downcase
+
+      if @options.key?(k)
+        line = line.gsub(t, @options[k])
+      else
+        dropdead "Unable to substitute #{t}, #{k} not set in [#{text}]"
+      end
+    end
+
+    line
+  end
+
+  def do_cmd(command)
+    command = interpolate(command)
+
+    log '>', "CMD #{command}"
+
+    make_connections
+
+    begin
+      @ssh.exec!(command) do |_, stream, data|
+        if stream == :stdout
+          data.split("\n").each do |line|
+            log '<', line
+          end
+        elsif stream == :stderr
+          data.split("\n").each do |line|
+            log '!', line
           end
         end
-      rescue StandardError => e
-        if command.include?('reboot')
-          # Yeah, the reboot command will cut the connection
-          # We're expecting that so we'll let it slide
-        else
-          log '!', "Exception: #{e}"
-          e.backtrace.each { |line| log ':', line }
-        end
+      end
+    rescue StandardError => e
+      if command.include?('reboot')
+        # Yeah, the reboot command will cut the connection
+        # We're expecting that so we'll let it slide
+      else
+        log '!', "Exception: #{e}"
+        e.backtrace.each { |line| log ':', line }
       end
     end
   end
 
-  def copy_file(v)
-    from, to = v.split(/\s+/)
+  def do_copy(text)
+    text = interpolate(text)
 
-    log '>', "Copy file [#{from}] to [#{to}]"
+    from, to = text.split(/\s+/)
 
-    return if @pretend
+    log '>', "COPY [#{from}] to [#{to}]"
+
+    make_connections
 
     begin
       @sftp.upload!(from, to)
     rescue StandardError => e
-      log '!', "Unable to copy file: #{e}"
+      dropdead "Unable to copy file: #{e}"
     end
   end
 
-  def run_script(v)
-    filename, args = v.split(/\s+/, 2)
-
-    basename = File.basename(filename)
-
-    copy_file("#{filename} ./#{basename}")
-    ex("chmod u+x ./#{basename}")
-    ex("./#{basename} #{args}")
-    ex("rm ./#{basename}")
+  def do_config(text)
+    k, v = text.split(/\s+/, 2)
+    k = k.downcase
+    @options[k] = v
   end
 
-  def process_file(filename, connector = ':')
-    log connector, "Reading commands from #{filename}"
+  def do_echo(text)
+    log '#', interpolate(text)
+  end
+
+  def do_debug
+    log '#', 'START CONFIG'
+    @options.each do |k, v|
+      log '#', "[#{k}] = [#{v}]"
+    end
+  end
+
+  def do_include(filename)
+    if File.exist?(filename)
+      process_file(filename)
+    else
+      dropdead "Include file #{filename} not found"
+    end
+  end
+
+  def dropdead(message)
+    log '!', message
+    exit
+  end
+
+  def process_file(filename)
+    log '#', "Reading commands from #{filename}"
 
     line_number = 0
-    unless File.exist?(filename)
-      log '!', "Command file [#{filename}] is missing"
-      exit
-    end
 
     File.open(filename, 'r').each do |line|
       line_number += 1
@@ -315,31 +358,29 @@ class Legion
       next if line =~ /^\s*$/
       next if line =~ /^\s*\#/
 
-      line = make_subs(line)
-
       c, v = line.chomp.strip.split(/\s+/, 2)
 
-      case c.downcase
-      when 'ex'
-        ex(v)
-      when 'call'
-        process_file(v, '@')
-        log connector, "Continuing with #{filename}"
-      when 'copy'
-        copy_file(v)
-      when 'run'
-        run_script(v)
-      when 'set'
-        k, v = v.split(/\s+/, 2)
-        k = k.downcase
-        @subs[k] = v
-        log '>', "Set [#{k}] to [#{v}]"
+      case c.upcase
+      when 'CMD'
+        do_cmd(v)
+      when 'COPY'
+        do_copy(v)
+      when 'CONFIG'
+        do_config(v)
+      when 'ECHO'
+        do_echo(v)
+      when 'DEBUG'
+        do_debug
+      when 'HALT'
+        dropdead "#{filename} commits suicide at line #{line_number}"
+      when 'INCLUDE'
+        do_include(v)
       else
-        log '!', "Unknown command [#{c}] at line #{line_number} of #{filename}"
+        dropdead "Unknown command [#{c}] at line #{line_number} of #{filename}"
       end
     end
 
-    log ':', "Completed #{filename}"
+    log '#', "Completed #{filename}"
   end
 end
 
