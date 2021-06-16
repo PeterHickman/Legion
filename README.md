@@ -56,7 +56,7 @@ The templating is only available within legion scripts. With our previous exampl
 CMD set_timezone.sh {{timezone}}
 ```
 
-Before this line is run `{timezone}` will be replaced by `Europe/London`
+Before this line is run `{{timezone}}` will be replaced by `Europe/London`
 
 ## A worked example
 
