@@ -16,7 +16,8 @@
 	<array>
 		<dict>
 			<key>match</key>
-			<string>\b(run|call|ex|copy|set)\b</string>
+			<string>\b(CMD|COPY|CONFIG|ECHO|DEBUG|HALT|INCLUDE)\b</string>
+
 			<key>name</key>
 			<string>keyword.control.legion</string>
 		</dict>
