@@ -1,10 +1,8 @@
 #!/usr/bin/env ruby
-# encoding: UTF-8
 # frozen_string_literal: true
 
-require 'rubygems'
-require 'net/ssh'
-require 'net/sftp'
+# require 'expect'
+require 'open3'
 
 class String
   ##
@@ -158,10 +156,14 @@ class Legion
   def initialize(list)
     @script_files = []
     @options = {}
+    @lines = []
+    @dry_run = false
 
     list.each do |filename|
       if File.exist?(filename)
         @script_files << filename
+      elsif filename == '--dry-run'
+        @dry_run = true
       else
         dropdead "[#{filename}] is not a real file"
       end
@@ -173,22 +175,88 @@ class Legion
     @logger = File.open(logfile_name, 'w')
 
     log '#', "Log file written to #{logfile_name}"
-
-    @ssh  = nil
-    @sftp = nil
   end
 
   def process
     log '#', "Legion command line #{@script_files.join(' ')}"
 
+    ##
+    # Collect all the lines to execute
+    ##
+    @lines.clear
+
     @script_files.each do |script_file|
       process_file(script_file)
+    end
+
+    ##
+    # Execute the lines
+    ##
+    @lines.each do |x|
+      case x[:command]
+      when 'CMD'
+        do_cmd(x[:args])
+      when 'COPY'
+        do_copy(x[:args])
+      when 'CONFIG'
+        do_config(x[:args])
+      when 'ECHO'
+        do_echo(x[:args])
+      when 'DEBUG'
+        do_debug
+      when 'HALT'
+        dropdead "#{x[:file]} commits suicide at line #{x[:line]}"
+      when 'INCLUDE'
+        # Nothing to do in this pass
+      else
+        dropdead "Unknown command [#{x[:command]}] at line #{x[:line]} of #{x[:file]}"
+      end
     end
 
     log '#', 'Done'
   end
 
   private
+
+  def process_file(filename)
+    @lines << {file: filename, line: 0, command: 'ECHO', args: "Reading commands from #{filename}"}
+
+    line_number = 0
+
+    File.open(filename, 'r').each do |line|
+      line_number += 1
+
+      next if line =~ /^\s*$/
+      next if line =~ /^\s*\#/
+
+      c, v = line.chomp.strip.split(/\s+/, 2)
+
+      case c.upcase
+      when 'CMD', 'COPY', 'CONFIG', 'ECHO', 'DEBUG', 'HALT'
+        @lines << {file: filename, line: line_number, command: c.upcase, args: v}
+      when 'INCLUDE'
+        @lines << {file: filename, line: line_number, command: c.upcase, args: v}
+        do_include(v)
+      else
+        dropdead "Unknown command [#{c}] at line #{line_number} of #{filename}"
+      end
+    end
+
+    @lines << {file: filename, line: line_number, command: 'ECHO', args: "Completed #{filename}"}
+  end
+
+  def do_include(filename)
+    if File.exist?(filename)
+      process_file(filename)
+    else
+      dropdead "Include file #{filename} not found"
+    end
+  end
+
+  def dropdead(message)
+    log '!', message
+    exit
+  end
 
   def log(connection, message)
     text = "#{Time.now.strftime('%Y-%m-%d %H:%M:%S.%6N')} #{connection}"
@@ -204,44 +272,13 @@ class Legion
                 message.red
               when '#'
                 message.yellow
+              when '?'
+                message.magenta
               else
                 message
               end
 
     puts "#{text} #{message}"
-  end
-
-  def make_connections
-    return unless @ssh.nil?
-
-    check_options
-
-    @ssh = connect_ssh
-    @sftp = connect_sftp
-  end
-
-  def connect_ssh
-    log ':', 'Establishing ssh connection'
-
-    begin
-      ssh = Net::SSH.start(@options['host'], @options['username'], password: @options['password'], port: @options['port'])
-    rescue StandardError => e
-      dropdead "Failed to open ssh connection: #{e}"
-    end
-
-    ssh
-  end
-
-  def connect_sftp
-    log ':', 'Establishing sftp connection'
-
-    begin
-      sftp = Net::SFTP.start(@options['host'], @options['username'], password: @options['password'], port: @options['port'])
-    rescue StandardError => e
-      dropdead "Failed to open sftp connection: #{e}"
-    end
-
-    sftp
   end
 
   def check_options
@@ -276,27 +313,20 @@ class Legion
 
     log '>', "CMD #{command}"
 
-    make_connections
+    check_options
 
-    begin
-      @ssh.exec!(command) do |_, stream, data|
-        if stream == :stdout
-          data.split("\n").each do |line|
-            log '<', line
-          end
-        elsif stream == :stderr
-          data.split("\n").each do |line|
-            log '!', line
-          end
+    cmd = "ssh -p #{@options['port']} #{@options['username']}:#{@options['password']}@#{@options['host']} #{command}"
+
+    if @dry_run
+      log ':', "Pretend: #{cmd}"
+    else
+      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
+        while line = stdout.gets
+          log '<', line
         end
-      end
-    rescue StandardError => e
-      if command.include?('reboot')
-        # Yeah, the reboot command will cut the connection
-        # We're expecting that so we'll let it slide
-      else
-        log '!', "Exception: #{e}"
-        e.backtrace.each { |line| log ':', line }
+        while line = stderr.gets
+          log '!', line.chomp
+        end
       end
     end
   end
@@ -308,18 +338,35 @@ class Legion
 
     log '>', "COPY [#{from}] to [#{to}]"
 
-    make_connections
+    check_options
 
-    begin
-      @sftp.upload!(from, to)
-    rescue StandardError => e
-      dropdead "Unable to copy file: #{e}"
+    cmd = "scp -P #{@options['port']} #{from} #{@options['username']}@#{@options['host']}:#{to}"
+
+    if @dry_run
+      log ':', "Pretend: #{cmd}"
+    else
+      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
+        while line = stdout.gets
+          log '<', line
+        end
+      end
     end
   end
 
   def do_config(text)
     k, v = text.split(/\s+/, 2)
     k = k.downcase
+
+    if @options.key?(k)
+      if @options[k] == v
+        log '#', "Setting [#{k}] to [#{v}] (no change)"
+      else
+        log '?', "Re-setting [#{k}] to [#{v}] from [#{@options[k]}]"
+      end
+    else
+      log '#', "Setting [#{k}] to [#{v}]"
+    end
+
     @options[k] = v
   end
 
@@ -332,55 +379,6 @@ class Legion
     @options.each do |k, v|
       log '#', "[#{k}] = [#{v}]"
     end
-  end
-
-  def do_include(filename)
-    if File.exist?(filename)
-      process_file(filename)
-    else
-      dropdead "Include file #{filename} not found"
-    end
-  end
-
-  def dropdead(message)
-    log '!', message
-    exit
-  end
-
-  def process_file(filename)
-    log '#', "Reading commands from #{filename}"
-
-    line_number = 0
-
-    File.open(filename, 'r').each do |line|
-      line_number += 1
-
-      next if line =~ /^\s*$/
-      next if line =~ /^\s*\#/
-
-      c, v = line.chomp.strip.split(/\s+/, 2)
-
-      case c.upcase
-      when 'CMD'
-        do_cmd(v)
-      when 'COPY'
-        do_copy(v)
-      when 'CONFIG'
-        do_config(v)
-      when 'ECHO'
-        do_echo(v)
-      when 'DEBUG'
-        do_debug
-      when 'HALT'
-        dropdead "#{filename} commits suicide at line #{line_number}"
-      when 'INCLUDE'
-        do_include(v)
-      else
-        dropdead "Unknown command [#{c}] at line #{line_number} of #{filename}"
-      end
-    end
-
-    log '#', "Completed #{filename}"
   end
 end
 
