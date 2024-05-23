@@ -6,10 +6,6 @@ Why is it called "Legion"? Well I have created several such system before of suc
 
 This time I have gone for the simplest solution
 
-## Prerequisites
-
-None
-
 ## Using Legion
 
 ## Legion commands
