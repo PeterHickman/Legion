@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// Colours for logging to the terminal
 var Reset = "\033[0m"
 var Red = "\033[31m"
 var Green = "\033[32m"
@@ -23,6 +24,7 @@ var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
 
+// A line of the script to be run
 type line_to_execute struct {
 	file    string
 	line    int
@@ -30,32 +32,11 @@ type line_to_execute struct {
 	args    string
 }
 
+// The global variables
 var options = make(map[string]string)
 var logfile *os.File
 var lines = []line_to_execute{}
 var current_line line_to_execute
-
-// https://github.com/Scalingo/go-ssh-examples/blob/master/client.go
-func makeSshConnection(user, pass, host string) (*ssh.Client, *ssh.Session, error) {
-	sshConfig := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{ssh.Password(pass)},
-	}
-	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-
-	client, err := ssh.Dial("tcp", host, sshConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	session, err := client.NewSession()
-	if err != nil {
-		client.Close()
-		return nil, nil, err
-	}
-
-	return client, session, nil
-}
 
 func do_cmd(command string) {
 	command = interpolate(command)
@@ -106,7 +87,7 @@ func do_copy(command string) {
 		}
 
 		// Connect to the SSH server
-		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", options["host"], options["port"]), config)
+		conn, err := ssh.Dial("tcp", options["host"]+":"+options["port"], config)
 		if err != nil {
 			dropdead(fmt.Sprintf("Failed to connect to SSH server: %s", err))
 		}
@@ -158,6 +139,73 @@ func do_log(prefix, message string) {
 	fmt.Println(ts + " " + prefix + " " + color_text)
 }
 
+func do_config(k, v string) {
+	k = strings.ToLower(k)
+	val, ok := options[k]
+
+	if ok {
+		if v == val {
+			do_log("#", fmt.Sprintf("Setting [%s] to [%s] (no change)", k, v))
+		} else {
+			do_log("?", fmt.Sprintf("Re-setting [%s] to [%s] from [%s]", k, v, val))
+		}
+	} else {
+		do_log("#", fmt.Sprintf("Setting [%s] to [%s]", k, v))
+	}
+
+	options[k] = v
+}
+
+func do_debug() {
+	do_log("#", "START CONFIG")
+	for k, v := range options {
+		do_log("#", "["+k+"] = ["+v+"]")
+	}
+	do_log("#", "END CONFIG")
+}
+
+func do_echo(message string) {
+	do_log("#", interpolate(message))
+}
+
+func do_include(filename string) {
+	if fileExists(filename) {
+		dropdead(fmt.Sprintf("Include file %s not found", filename))
+	} else {
+		process_file(filename)
+	}
+}
+
+func fileExists(filename string) bool {
+	if _, err := os.Stat(filename); errors.Is(err, os.ErrNotExist) {
+		return false
+	} else {
+		return true
+	}
+}
+
+// https://github.com/Scalingo/go-ssh-examples/blob/master/client.go
+func makeSshConnection(user, pass, host string) (*ssh.Client, *ssh.Session, error) {
+	sshConfig := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{ssh.Password(pass)},
+	}
+	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
+	client, err := ssh.Dial("tcp", host, sshConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	session, err := client.NewSession()
+	if err != nil {
+		client.Close()
+		return nil, nil, err
+	}
+
+	return client, session, nil
+}
+
 func dropdead(message string) {
 	do_log("!", message)
 	os.Exit(3)
@@ -192,31 +240,6 @@ func create_logfile() *os.File {
 	return log
 }
 
-func do_config(k, v string) {
-	k = strings.ToLower(k)
-	val, ok := options[k]
-
-	if ok {
-		if v == val {
-			do_log("#", fmt.Sprintf("Setting [%s] to [%s] (no change)", k, v))
-		} else {
-			do_log("?", fmt.Sprintf("Re-setting [%s] to [%s] from [%s]", k, v, val))
-		}
-	} else {
-		do_log("#", fmt.Sprintf("Setting [%s] to [%s]", k, v))
-	}
-
-	options[k] = v
-}
-
-func do_debug() {
-	do_log("#", "START CONFIG")
-	for k, v := range options {
-		do_log("#", "["+k+"] = ["+v+"]")
-	}
-	do_log("#", "END CONFIG")
-}
-
 func interpolate(message string) string {
 	var t []string
 
@@ -249,18 +272,6 @@ func interpolate(message string) string {
 	return strings.Join(t, "")
 }
 
-func do_echo(message string) {
-	do_log("#", interpolate(message))
-}
-
-func do_include(filename string) {
-	if _, err := os.Stat(filename); errors.Is(err, os.ErrNotExist) {
-		dropdead(fmt.Sprintf("Include file %s not found", filename))
-	} else {
-		process_file(filename)
-	}
-}
-
 // https://stackoverflow.com/questions/37290693/how-to-remove-redundant-spaces-whitespace-from-a-string-in-golang
 func standardizeSpaces(s string) string {
 	return strings.Join(strings.Fields(s), " ")
@@ -276,6 +287,7 @@ func process_file(filename string) {
 	if err != nil {
 		dropdead(fmt.Sprintf("Unable to read %s", filename))
 	}
+
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
 
@@ -290,12 +302,12 @@ func process_file(filename string) {
 			c := strings.ToUpper(parts[0])
 			a := strings.Join(parts[1:], " ")
 
-			if c == "CMD" || c == "CMD" || c == "COPY" || c == "CONFIG" || c == "ECHO" || c == "DEBUG" || c == "HALT" {
-				lines = append(lines, line_to_execute{filename, line_number, c, a})
-			} else if c == "INCLUDE" {
+			if c == "INCLUDE" {
 				// lines = append(lines, line_to_execute{filename, line_number, "ECHO", a})
 				do_include(a)
 				lines = append(lines, line_to_execute{filename, line_number, "ECHO", "Resuming " + filename})
+			} else {
+				lines = append(lines, line_to_execute{filename, line_number, c, a})
 			}
 		}
 	}
@@ -359,7 +371,7 @@ func opts() []string {
 			}
 			do_config(v1, v2)
 		} else {
-			if _, err := os.Stat(k); errors.Is(err, os.ErrNotExist) {
+			if fileExists(k) {
 				dropdead(fmt.Sprintf("[%s] is not a real file", k))
 			} else {
 				scripts = append(scripts, k)
