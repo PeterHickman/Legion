@@ -4,16 +4,19 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	strftime "github.com/lestrrat-go/strftime"
-	sftp "github.com/pkg/sftp"
-	ssh "golang.org/x/crypto/ssh"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/lestrrat-go/strftime"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
-// Colours for logging to the terminal
+const TRUE = "true"
+
 var Reset = "\033[0m"
 var Red = "\033[31m"
 var Green = "\033[32m"
@@ -24,28 +27,70 @@ var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
 
-// A line of the script to be run
-type line_to_execute struct {
+type lineToExecute struct {
 	file    string
 	line    int
 	command string
 	args    string
 }
 
-// The global variables
 var options = make(map[string]string)
 var logfile *os.File
-var lines = []line_to_execute{}
-var current_line line_to_execute
+var lines = []lineToExecute{}
+var currentLine lineToExecute
 
-func do_cmd(command string) {
+// https://stackoverflow.com/questions/17609732/expand-tilde-to-home-directory
+func expandHome(s string) string {
+	home, _ := os.UserHomeDir()
+	return strings.Replace(s, "~", home, 1)
+}
+
+func makeSSHConfig() *ssh.ClientConfig {
+	key, err := os.ReadFile(expandHome("~/.ssh/id_rsa"))
+	if err != nil {
+		dropdead(fmt.Sprintf("%s", err))
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		dropdead(fmt.Sprintf("%s", err))
+	}
+
+	sshConfig := &ssh.ClientConfig{
+		User:            options["username"],
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer), ssh.Password(options["password"])},
+		HostKeyCallback: ssh.HostKeyCallback(func(string, net.Addr, ssh.PublicKey) error { return nil }),
+	}
+
+	return sshConfig
+}
+
+// https://github.com/Scalingo/go-ssh-examples/blob/master/client.go
+func makeSSHConnection() (*ssh.Client, *ssh.Session, error) {
+	sshConfig := makeSSHConfig()
+
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", options["host"], options["port"]), sshConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	session, err := client.NewSession()
+	if err != nil {
+		client.Close()
+		return nil, nil, err
+	}
+
+	return client, session, nil
+}
+
+func doCmd(command string) {
 	command = interpolate(command)
-	do_log(">", "CMD "+command)
+	doLog(">", "CMD "+command)
 
-	if options["dry-run"] == "true" {
-		do_log(":", "Pretend: "+command)
+	if options["dry-run"] == TRUE {
+		doLog(":", "Pretend: "+command)
 	} else {
-		client, session, err := makeSshConnection(options["username"], options["password"], options["host"]+":"+options["port"])
+		client, session, err := makeSSHConnection()
 		if err != nil {
 			dropdead(fmt.Sprintf("%s", err))
 		}
@@ -58,7 +103,7 @@ func do_cmd(command string) {
 
 		for _, v := range strings.Split(string(out), "\n") {
 			if len(v) > 0 {
-				do_log(prefix, v)
+				doLog(prefix, v)
 			}
 		}
 
@@ -66,28 +111,24 @@ func do_cmd(command string) {
 	}
 }
 
-func do_copy(command string) {
+func doCopy(command string) {
 	command = interpolate(command)
 	parts := strings.Fields(command)
 	src := parts[0]
 	dst := parts[1]
 
-	do_log(">", "COPY ["+src+"] to ["+dst+"]")
+	doLog(">", "COPY ["+src+"] to ["+dst+"]")
 
-	if options["dry-run"] == "true" {
+	if options["dry-run"] == TRUE {
 		cmd := "sftp " + src + " " + options["host"] + ":" + dst
-		do_log(":", "Pretend: "+cmd)
+		doLog(":", "Pretend: "+cmd)
 	} else {
 		// https://docs.couchdrop.io/walkthroughs/using-sftp-clients/using-sftp-with-golang
 
-		config := &ssh.ClientConfig{
-			User:            options["username"],
-			Auth:            []ssh.AuthMethod{ssh.Password(options["password"])},
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		}
+		sshConfig := makeSSHConfig()
 
 		// Connect to the SSH server
-		conn, err := ssh.Dial("tcp", options["host"]+":"+options["port"], config)
+		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", options["host"], options["port"]), sshConfig)
 		if err != nil {
 			dropdead(fmt.Sprintf("Failed to connect to SSH server: %s", err))
 		}
@@ -119,99 +160,33 @@ func do_copy(command string) {
 	}
 }
 
-func do_log(prefix, message string) {
+func doLog(prefix, message string) {
 	ts, _ := strftime.Format("%Y-%m-%d %H:%M:%S", time.Now())
 	logfile.WriteString(ts + " " + prefix + " " + message + "\n")
 
-	color_text := message
-	if prefix == ":" {
-		color_text = Green + message + Reset
-	} else if prefix == ">" {
-		color_text = Blue + message + Reset
-	} else if prefix == "!" {
-		color_text = Red + message + Reset
-	} else if prefix == "#" {
-		color_text = Yellow + message + Reset
-	} else if prefix == "?" {
-		color_text = Magenta + message + Reset
+	colorText := message
+	switch prefix {
+	case ":":
+		colorText = Green + message + Reset
+	case ">":
+		colorText = Blue + message + Reset
+	case "!":
+		colorText = Red + message + Reset
+	case "#":
+		colorText = Yellow + message + Reset
+	case "?":
+		colorText = Magenta + message + Reset
 	}
 
-	fmt.Println(ts + " " + prefix + " " + color_text)
-}
-
-func do_config(k, v string) {
-	k = strings.ToLower(k)
-	val, ok := options[k]
-
-	if ok {
-		if v == val {
-			do_log("#", fmt.Sprintf("Setting [%s] to [%s] (no change)", k, v))
-		} else {
-			do_log("?", fmt.Sprintf("Re-setting [%s] to [%s] from [%s]", k, v, val))
-		}
-	} else {
-		do_log("#", fmt.Sprintf("Setting [%s] to [%s]", k, v))
-	}
-
-	options[k] = v
-}
-
-func do_debug() {
-	do_log("#", "START CONFIG")
-	for k, v := range options {
-		do_log("#", "["+k+"] = ["+v+"]")
-	}
-	do_log("#", "END CONFIG")
-}
-
-func do_echo(message string) {
-	do_log("#", interpolate(message))
-}
-
-func do_include(filename string) {
-	if fileExists(filename) {
-		dropdead(fmt.Sprintf("Include file %s not found", filename))
-	} else {
-		process_file(filename)
-	}
-}
-
-func fileExists(filename string) bool {
-	if _, err := os.Stat(filename); errors.Is(err, os.ErrNotExist) {
-		return false
-	} else {
-		return true
-	}
-}
-
-// https://github.com/Scalingo/go-ssh-examples/blob/master/client.go
-func makeSshConnection(user, pass, host string) (*ssh.Client, *ssh.Session, error) {
-	sshConfig := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{ssh.Password(pass)},
-	}
-	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-
-	client, err := ssh.Dial("tcp", host, sshConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	session, err := client.NewSession()
-	if err != nil {
-		client.Close()
-		return nil, nil, err
-	}
-
-	return client, session, nil
+	fmt.Println(ts + " " + prefix + " " + colorText)
 }
 
 func dropdead(message string) {
-	do_log("!", message)
+	doLog("!", message)
 	os.Exit(3)
 }
 
-func check_logdir() {
+func checkLogdir() {
 	_, err := os.Stat("log")
 	if err == nil {
 		return
@@ -225,8 +200,8 @@ func check_logdir() {
 	}
 }
 
-func create_logfile() *os.File {
-	check_logdir()
+func createLogfile() *os.File {
+	checkLogdir()
 
 	f, _ := strftime.Format("%Y%m%d-%H%M", time.Now())
 
@@ -238,6 +213,43 @@ func create_logfile() *os.File {
 	}
 
 	return log
+}
+
+func doConfig(k, v string) {
+	k = strings.ToLower(k)
+	val, ok := options[k]
+
+	if ok {
+		if v == val {
+			doLog("#", fmt.Sprintf("Setting [%s] to [%s] (no change)", k, v))
+		} else {
+			doLog("?", fmt.Sprintf("Re-setting [%s] to [%s] from [%s]", k, v, val))
+		}
+	} else {
+		doLog("#", fmt.Sprintf("Setting [%s] to [%s]", k, v))
+	}
+
+	options[k] = v
+}
+
+func doDebug() {
+	doLog("#", "START CONFIG")
+	for k, v := range options {
+		doLog("#", "["+k+"] = ["+v+"]")
+	}
+	doLog("#", "END CONFIG")
+}
+
+func doEcho(message string) {
+	doLog("#", interpolate(message))
+}
+
+func doInclude(filename string) {
+	if _, err := os.Stat(filename); errors.Is(err, os.ErrNotExist) {
+		dropdead(fmt.Sprintf("Include file %s not found", filename))
+	} else {
+		processFile(filename)
+	}
 }
 
 func interpolate(message string) string {
@@ -256,7 +268,7 @@ func interpolate(message string) string {
 
 		i = strings.Index(message, "}}")
 		if i == -1 {
-			dropdead(fmt.Sprintf("Unbalanced template in %s at line %d: %s %s", current_line.file, current_line.line, current_line.command, current_line.args))
+			dropdead(fmt.Sprintf("Unbalanced template in %s at line %d: %s %s", currentLine.file, currentLine.line, currentLine.command, currentLine.args))
 		}
 
 		k := strings.ToLower(message[:i])
@@ -265,7 +277,7 @@ func interpolate(message string) string {
 			t = append(t, val)
 			message = message[i+2:]
 		} else {
-			dropdead(fmt.Sprintf("Unable to find a substitute for %s in %s at line %d: %s %s", k, current_line.file, current_line.line, current_line.command, current_line.args))
+			dropdead(fmt.Sprintf("Unable to find a substitute for %s in %s at line %d: %s %s", k, currentLine.file, currentLine.line, currentLine.command, currentLine.args))
 		}
 	}
 
@@ -277,75 +289,75 @@ func standardizeSpaces(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-func process_file(filename string) {
-	lines = append(lines, line_to_execute{filename, 0, "ECHO", "Reading commands from " + filename})
+func processFile(filename string) {
+	lines = append(lines, lineToExecute{filename, 0, "ECHO", "Reading commands from " + filename})
 
-	line_number := 0
+	lineNumber := 0
 
 	readFile, err := os.Open(filename)
 
 	if err != nil {
 		dropdead(fmt.Sprintf("Unable to read %s", filename))
 	}
-
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
 
 	for fileScanner.Scan() {
-		line_number++
+		lineNumber++
 
 		line := fileScanner.Text()
 		line = standardizeSpaces(line)
 
-		if strings.HasPrefix(line, "#") == false && len(line) > 0 {
+		if !strings.HasPrefix(line, "#") && len(line) > 0 {
 			parts := strings.Fields(line)
 			c := strings.ToUpper(parts[0])
 			a := strings.Join(parts[1:], " ")
 
 			if c == "INCLUDE" {
-				// lines = append(lines, line_to_execute{filename, line_number, "ECHO", a})
-				do_include(a)
-				lines = append(lines, line_to_execute{filename, line_number, "ECHO", "Resuming " + filename})
+				// lines = append(lines, lineToExecute{filename, lineNumber, "ECHO", a})
+				doInclude(a)
+				lines = append(lines, lineToExecute{filename, lineNumber, "ECHO", "Resuming " + filename})
 			} else {
-				lines = append(lines, line_to_execute{filename, line_number, c, a})
+				lines = append(lines, lineToExecute{filename, lineNumber, c, a})
 			}
 		}
 	}
 
 	readFile.Close()
 
-	lines = append(lines, line_to_execute{filename, line_number, "ECHO", "Completed " + filename})
+	lines = append(lines, lineToExecute{filename, lineNumber, "ECHO", "Completed " + filename})
 }
 
 func process(scripts []string) {
-	do_log("#", fmt.Sprintf("Legion command line %s", scripts))
+	doLog("#", fmt.Sprintf("Legion command line %s", scripts))
 
 	for _, script := range scripts {
-		process_file(script)
+		processFile(script)
 	}
 
-	for _, current_line = range lines {
-		if current_line.command == "CMD" {
-			do_cmd(current_line.args)
-		} else if current_line.command == "COPY" {
-			do_copy(current_line.args)
-		} else if current_line.command == "CONFIG" {
-			parts := strings.Fields(current_line.args)
-			do_config(parts[0], parts[1])
-		} else if current_line.command == "ECHO" {
-			do_echo(current_line.args)
-		} else if current_line.command == "DEBUG" {
-			do_debug()
-		} else if current_line.command == "HALT" {
-			dropdead(fmt.Sprintf("%s commits suicide at line %d", current_line.file, current_line.line))
-		} else if current_line.command == "INCLUDE" {
+	for _, currentLine = range lines {
+		switch currentLine.command {
+		case "CMD":
+			doCmd(currentLine.args)
+		case "COPY":
+			doCopy(currentLine.args)
+		case "CONFIG":
+			parts := strings.Fields(currentLine.args)
+			doConfig(parts[0], parts[1])
+		case "ECHO":
+			doEcho(currentLine.args)
+		case "DEBUG":
+			doDebug()
+		case "HALT":
+			dropdead(fmt.Sprintf("%s commits suicide at line %d", currentLine.file, currentLine.line))
+		case "INCLUDE":
 			// Nothing to do in this pass
-		} else {
-			dropdead(fmt.Sprintf("Unknown command [%s] at line %d of %s", current_line.command, current_line.line, current_line.file))
+		default:
+			dropdead(fmt.Sprintf("Unknown command [%s] at line %d of %s", currentLine.command, currentLine.line, currentLine.file))
 		}
 	}
 
-	do_log("#", "Done")
+	doLog("#", "Done")
 }
 
 func opts() []string {
@@ -355,12 +367,13 @@ func opts() []string {
 	for i := 0; i < len(os.Args[1:]); i++ {
 		k := os.Args[(1 + i)]
 
-		if k == "--dry-run" {
-			options["dry-run"] = "true"
-		} else if k == "--config" {
+		switch k {
+		case "--dry-run":
+			options["dry-run"] = TRUE
+		case "--config":
 			i++
 			v1 := os.Args[(1 + i)]
-			v2 := ""
+			var v2 string
 			if strings.Contains(v1, "=") {
 				parts := strings.Split(v1, "=")
 				v1 = parts[0]
@@ -369,9 +382,9 @@ func opts() []string {
 				i++
 				v2 = os.Args[(1 + i)]
 			}
-			do_config(v1, v2)
-		} else {
-			if fileExists(k) {
+			doConfig(v1, v2)
+		default:
+			if _, err := os.Stat(k); errors.Is(err, os.ErrNotExist) {
 				dropdead(fmt.Sprintf("[%s] is not a real file", k))
 			} else {
 				scripts = append(scripts, k)
@@ -383,7 +396,7 @@ func opts() []string {
 }
 
 func main() {
-	logfile = create_logfile()
+	logfile = createLogfile()
 	defer logfile.Close()
 
 	scripts := opts()
