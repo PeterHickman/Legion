@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	ep "github.com/PeterHickman/expand_path"
 	"github.com/lestrrat-go/strftime"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -39,14 +40,13 @@ var logfile *os.File
 var lines = []lineToExecute{}
 var currentLine lineToExecute
 
-// https://stackoverflow.com/questions/17609732/expand-tilde-to-home-directory
-func expandHome(s string) string {
-	home, _ := os.UserHomeDir()
-	return strings.Replace(s, "~", home, 1)
-}
-
 func makeSSHConfig() *ssh.ClientConfig {
-	key, err := os.ReadFile(expandHome("~/.ssh/id_rsa"))
+	path, err := ep.ExpandPath("~/.ssh/id_rsa")
+	if err != nil {
+		dropdead("Unable to read ~/.ssh/id_rsa")
+	}
+
+	key, err := os.ReadFile(path)
 	if err != nil {
 		dropdead(fmt.Sprintf("%s", err))
 	}
@@ -162,7 +162,7 @@ func doCopy(command string) {
 
 func doLog(prefix, message string) {
 	ts, _ := strftime.Format("%Y-%m-%d %H:%M:%S", time.Now())
-	logfile.WriteString(ts + " " + prefix + " " + message + "\n")
+	_, _ = logfile.WriteString(ts + " " + prefix + " " + message + "\n")
 
 	colorText := message
 	switch prefix {
@@ -297,7 +297,7 @@ func processFile(filename string) {
 	readFile, err := os.Open(filename)
 
 	if err != nil {
-		dropdead(fmt.Sprintf("Unable to read %s", filename))
+		dropdead("Unable to read " + filename)
 	}
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
