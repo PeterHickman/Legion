@@ -8,3 +8,4 @@ linters:
     - varnamelen
     - gofumpt
     - wsl
+    - depguard
