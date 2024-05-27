@@ -1,3 +1,5 @@
+github.com/PeterHickman/ansi_colours v1.0.0 h1:fvVDJ5CJTyLvMGG68gJXN2YL6DI/72WJckdVcJNFxjY=
+github.com/PeterHickman/ansi_colours v1.0.0/go.mod h1:IWsludjGb9SEkbYYuAUKBDbHdYCCNXh6OteHOgi0m3o=
 github.com/PeterHickman/expand_path v1.0.1 h1:U0nTzN3cwK1upkzH+d1oDx0OHXDMce8c381feRZyJHc=
 github.com/PeterHickman/expand_path v1.0.1/go.mod h1:pue22LojYg5BNpXkDIJwExMeAdq0RgNae/iQxxDu7/s=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	ac "github.com/PeterHickman/ansi_colours"
 	ep "github.com/PeterHickman/expand_path"
 	"github.com/lestrrat-go/strftime"
 	"github.com/pkg/sftp"
@@ -17,16 +18,6 @@ import (
 )
 
 const TRUE = "true"
-
-var Reset = "\033[0m"
-var Red = "\033[31m"
-var Green = "\033[32m"
-var Yellow = "\033[33m"
-var Blue = "\033[34m"
-var Magenta = "\033[35m"
-var Cyan = "\033[36m"
-var Gray = "\033[37m"
-var White = "\033[97m"
 
 type lineToExecute struct {
 	file    string
@@ -167,15 +158,15 @@ func doLog(prefix, message string) {
 	colorText := message
 	switch prefix {
 	case ":":
-		colorText = Green + message + Reset
+		colorText = ac.Green(message)
 	case ">":
-		colorText = Blue + message + Reset
+		colorText = ac.Blue(message)
 	case "!":
-		colorText = Red + message + Reset
+		colorText = ac.Red(message)
 	case "#":
-		colorText = Yellow + message + Reset
+		colorText = ac.Yellow(message)
 	case "?":
-		colorText = Magenta + message + Reset
+		colorText = ac.Magenta(message)
 	}
 
 	fmt.Println(ts + " " + prefix + " " + colorText)
