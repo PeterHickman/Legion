@@ -33,7 +33,7 @@ var currentLine lineToExecute
 
 func makeSSHConfig() *ssh.ClientConfig {
 	path, err := ep.ExpandPath("~/.ssh/id_rsa")
-    idUsable := true
+	idUsable := true
 
 	if err != nil {
 		doLog("?", "Unable to read ~/.ssh/id_rsa using username and password")
@@ -41,33 +41,33 @@ func makeSSHConfig() *ssh.ClientConfig {
 	}
 
 	var signer ssh.Signer
-    var key []byte
+	var key []byte
 
-    if idUsable {
-        key, err = os.ReadFile(path)
-	    if err != nil {
-		    doLog("?", "Unable to read ~/.ssh/id_rsa using username and password")
-		    idUsable = false
-	    }
-    }
- 
-    if idUsable {
-    	signer, err = ssh.ParsePrivateKey(key)
-	    if err != nil {
-		    dropdead(fmt.Sprintf("%s", err))
-	    }
-    }
+	if idUsable {
+		key, err = os.ReadFile(path)
+		if err != nil {
+			doLog("?", "Unable to read ~/.ssh/id_rsa using username and password")
+			idUsable = false
+		}
+	}
+
+	if idUsable {
+		signer, err = ssh.ParsePrivateKey(key)
+		if err != nil {
+			dropdead(fmt.Sprintf("%s", err))
+		}
+	}
 
 	sshConfig := &ssh.ClientConfig{
 		User:            options["username"],
 		HostKeyCallback: ssh.HostKeyCallback(func(string, net.Addr, ssh.PublicKey) error { return nil }),
 	}
 
-    if idUsable {
-        sshConfig.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer), ssh.Password(options["password"])}
-    } else {
-        sshConfig.Auth = []ssh.AuthMethod{ssh.Password(options["password"])}
-    }
+	if idUsable {
+		sshConfig.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer), ssh.Password(options["password"])}
+	} else {
+		sshConfig.Auth = []ssh.AuthMethod{ssh.Password(options["password"])}
+	}
 
 	return sshConfig
 }
