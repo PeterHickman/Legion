@@ -11,6 +11,7 @@ require (
 
 require (
 	github.com/PeterHickman/ansi_colours v1.0.0 // indirect
+	github.com/PeterHickman/toolbox v0.0.0-20240703170653-c43326e9214c // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/sys v0.20.0 // indirect

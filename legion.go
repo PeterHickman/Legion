@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +11,7 @@ import (
 
 	ac "github.com/PeterHickman/ansi_colours"
 	ep "github.com/PeterHickman/expand_path"
+	toolbox "github.com/PeterHickman/toolbox"
 	"github.com/lestrrat-go/strftime"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -44,8 +44,7 @@ func makeSSHConfig() *ssh.ClientConfig {
 	var key []byte
 
 	if idUsable {
-		key, err = os.ReadFile(path)
-		if err != nil {
+		if !toolbox.FileExists(path) {
 			doLog("?", "Unable to read ~/.ssh/id_rsa using username and password")
 			idUsable = false
 		}
@@ -194,16 +193,13 @@ func dropdead(message string) {
 }
 
 func checkLogdir() {
-	_, err := os.Stat("log")
-	if err == nil {
+	if toolbox.FileExists("log") {
 		return
 	}
 
-	if os.IsNotExist(err) {
-		err := os.Mkdir("log", 0755)
-		if err != nil {
-			dropdead("Unable to create the log directory")
-		}
+	err := os.Mkdir("log", 0755)
+	if err != nil {
+		dropdead("Unable to create the log directory")
 	}
 }
 
@@ -252,10 +248,10 @@ func doEcho(message string) {
 }
 
 func doInclude(filename string) {
-	if _, err := os.Stat(filename); errors.Is(err, os.ErrNotExist) {
-		dropdead(fmt.Sprintf("Include file %s not found", filename))
-	} else {
+	if toolbox.FileExists(filename) {
 		processFile(filename)
+	} else {
+		dropdead(fmt.Sprintf("Include file %s not found", filename))
 	}
 }
 
@@ -391,10 +387,10 @@ func opts() []string {
 			}
 			doConfig(v1, v2)
 		default:
-			if _, err := os.Stat(k); errors.Is(err, os.ErrNotExist) {
-				dropdead(fmt.Sprintf("[%s] is not a real file", k))
-			} else {
+			if toolbox.FileExists(k) {
 				scripts = append(scripts, k)
+			} else {
+				dropdead(fmt.Sprintf("[%s] is not a real file", k))
 			}
 		}
 	}
