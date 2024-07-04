@@ -1,5 +1,7 @@
 package main
 
+// TODO: need to use the flag package
+
 import (
 	"bufio"
 	"fmt"
