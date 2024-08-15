@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const TRUE = "true"
+const TRUE string = "true"
 
 const defaultPrivateKey string = "~/.ssh/id_rsa"
 
