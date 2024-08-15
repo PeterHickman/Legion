@@ -44,11 +44,13 @@ func publicKeyFile(file string) ssh.AuthMethod {
 
 	buffer, err := os.ReadFile(path)
 	if err != nil {
+		doLog("?", fmt.Sprintf("Unable to read %s using username and password", file))
 		return nil
 	}
 
 	key, err := ssh.ParsePrivateKey(buffer)
 	if err != nil {
+		doLog("?", fmt.Sprintf("Unable to read %s using username and password", file))
 		return nil
 	}
 
