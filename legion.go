@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -33,42 +34,44 @@ var logfile *os.File
 var lines = []lineToExecute{}
 var currentLine lineToExecute
 
-func makeSSHConfig() *ssh.ClientConfig {
-	path, err := ep.ExpandPath("~/.ssh/id_rsa")
-	idUsable := true
+const defaultPrivateKey string = "~/.ssh/id_rsa"
 
+// https://blog.ralch.com/articles/golang-ssh-connection/
+func publicKeyFile(file string) ssh.AuthMethod {
+	path, _ := ep.ExpandPath(file)
+
+	if !toolbox.FileExists(path) {
+		doLog("?", fmt.Sprintf("Unable to read %s using username and password", file))
+		return nil
+	}
+
+	buffer, err := ioutil.ReadFile(path)
 	if err != nil {
-		doLog("?", "Unable to read ~/.ssh/id_rsa using username and password")
-		idUsable = false
+		return nil
 	}
 
-	var signer ssh.Signer
-	var key []byte
-
-	if idUsable {
-		if !toolbox.FileExists(path) {
-			doLog("?", "Unable to read ~/.ssh/id_rsa using username and password")
-			idUsable = false
-		}
+	key, err := ssh.ParsePrivateKey(buffer)
+	if err != nil {
+		return nil
 	}
 
-	if idUsable {
-		signer, err = ssh.ParsePrivateKey(key)
-		if err != nil {
-			dropdead(fmt.Sprintf("%s", err))
-		}
+	return ssh.PublicKeys(key)
+}
+
+func makeSSHConfig() *ssh.ClientConfig {
+	auths := []ssh.AuthMethod{ssh.Password(options["password"])}
+
+	p := publicKeyFile(defaultPrivateKey)
+	if p != nil {
+		auths = append(auths, p)
 	}
 
 	sshConfig := &ssh.ClientConfig{
 		User:            options["username"],
+		Auth:            auths,
 		HostKeyCallback: ssh.HostKeyCallback(func(string, net.Addr, ssh.PublicKey) error { return nil }),
 	}
-
-	if idUsable {
-		sshConfig.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer), ssh.Password(options["password"])}
-	} else {
-		sshConfig.Auth = []ssh.AuthMethod{ssh.Password(options["password"])}
-	}
+	sshConfig.SetDefaults()
 
 	return sshConfig
 }
