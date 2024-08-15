@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -45,7 +44,7 @@ func publicKeyFile(file string) ssh.AuthMethod {
 		return nil
 	}
 
-	buffer, err := ioutil.ReadFile(path)
+	buffer, err := os.ReadFile(path)
 	if err != nil {
 		return nil
 	}
