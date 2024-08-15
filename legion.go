@@ -1,7 +1,5 @@
 package main
 
-// TODO: need to use the flag package
-
 import (
 	"bufio"
 	"fmt"
@@ -21,6 +19,8 @@ import (
 
 const TRUE = "true"
 
+const defaultPrivateKey string = "~/.ssh/id_rsa"
+
 type lineToExecute struct {
 	file    string
 	line    int
@@ -32,8 +32,6 @@ var options = make(map[string]string)
 var logfile *os.File
 var lines = []lineToExecute{}
 var currentLine lineToExecute
-
-const defaultPrivateKey string = "~/.ssh/id_rsa"
 
 // https://blog.ralch.com/articles/golang-ssh-connection/
 func publicKeyFile(file string) ssh.AuthMethod {
