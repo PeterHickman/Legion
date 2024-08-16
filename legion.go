@@ -60,7 +60,14 @@ func publicKeyFile(file string) ssh.AuthMethod {
 func makeSSHConfig() *ssh.ClientConfig {
 	auths := []ssh.AuthMethod{ssh.Password(options["password"])}
 
-	p := publicKeyFile(defaultPrivateKey)
+	var p ssh.AuthMethod
+
+	if options["private_keyfile"] == "" {
+		p = publicKeyFile(defaultPrivateKey)
+	} else {
+		p = publicKeyFile(options["private_keyfile"])
+	}
+
 	if p != nil {
 		auths = append(auths, p)
 	}

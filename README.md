@@ -26,7 +26,7 @@ The command `COPY fred.txt albert.txt` will copy the file `fred.txt` from the ho
 
 ### `CONFIG` - Set an internal variable
 
-To set a variable `CONFIG timezone Europe/London` which can be used later in templates
+To set a variable `CONFIG timezone Europe/London` which can be used later in templates. There is a *magic* config setting `private_keyfile`. When making an ssh connection it will by default try to use `~/.ssh/id_rsa`, unless `private_keyfile` is set in which case it will try and use that as the private key file
 
 ### `ECHO` - Write a message out to the log
 
