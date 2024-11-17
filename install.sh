@@ -1,12 +1,13 @@
 #!/bin/sh
 
 BINARY='/usr/local/bin'
+APP=legion
 
-echo "Building legion"
-go build legion.go
+echo "Building $APP"
+go build -ldflags="-s -w" $APP.go
 
-echo "Installing legion to $BINARY"
-install -v legion $BINARY
+echo "Installing dexec to $BINARY"
+install $APP $BINARY
 
 echo "Removing the build"
-rm legion
+rm $APP
